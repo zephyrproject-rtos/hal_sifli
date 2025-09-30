@@ -297,7 +297,8 @@ __HAL_ROM_USED int hex2data_revert(char *hexstr, uint8_t *data, uint8_t max_len)
   * @param  value value to set into backup register
   * @retval None
   */
-__HAL_ROM_USED void HAL_Set_backup(uint8_t idx, uint32_t value)
+
+HAL_RAM_RET_CODE_SECT(HAL_Set_backup, __HAL_ROM_USED void HAL_Set_backup(uint8_t idx, uint32_t value))
 {
     volatile uint32_t *p = &hwp_rtc->BKP0R;
     *(p + idx) = value;
@@ -310,7 +311,7 @@ __HAL_ROM_USED void HAL_Set_backup(uint8_t idx, uint32_t value)
   * @param  idx index of backup register
   * @retval value saved in the backup register
   */
-__HAL_ROM_USED uint32_t HAL_Get_backup(uint8_t idx)
+HAL_RAM_RET_CODE_SECT(HAL_Get_backup, __HAL_ROM_USED uint32_t HAL_Get_backup(uint8_t idx))
 {
     volatile uint32_t *p = &hwp_rtc->BKP0R;
     return *(p + idx);
