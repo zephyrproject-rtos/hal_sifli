@@ -6,13 +6,13 @@ build:
 
 blobs:  
   - path: sf32lb52_lcpu.h
-    sha256: fea5a661ed066df170d354986d899bbb3f61c3f5035aab38b5fc4b8dfa3f5fb5
+    sha256: 2066e76e0c3edc1a6592228eebc2726a5f01af98567240cc9cb409bbcd3198af
     type: img
-    version: 'v3.0.0'
+    version: 'v3.0.1'
     license-path: zephyr/blobs/LICENSE
-    url: https://raw.githubusercontent.com/OpenSiFli/SiFli-Bluetooth/refs/tags/v3.0.0/patch/sf32lb52/sf32lb52_lcpu.h
+    url: https://raw.githubusercontent.com/OpenSiFli/SiFli-Bluetooth/refs/tags/v3.0.1/patch/sf32lb52/sf32lb52_lcpu.h
     description: "LCPU image for SF32LB chipset"
-    doc-url: https://github.com/OpenSiFli/SiFli-Bluetooth/tree/v3.0.0/patch
+    doc-url: https://github.com/OpenSiFli/SiFli-Bluetooth/tree/v3.0.1/patch
   - path: sf32lb52_lcpu_patch.h
     sha256: d7f9097b40c2b92e2a7d383e88b9a6ce90b7cc114f2acb14c2e99e8f38bba78c
     type: img
