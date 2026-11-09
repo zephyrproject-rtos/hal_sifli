@@ -148,6 +148,10 @@
 #else
     #define PSRAM2_SIZE                 (0)
 #endif
+
+//================== Peripheral Base Addresses ==================
+#define GPIO1_BASE          0x500a0000
+#define GPIO2_BASE          0x40080000
 //======================================= Code mapping =======================================
 
 //================= Boot loader ===============

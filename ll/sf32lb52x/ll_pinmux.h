@@ -8,7 +8,8 @@
 #define __LL_PINMUX_H
 
 #include <stdint.h>
-#include "register.h"
+#include "hpsys_pinmux.h"
+#include "cmsis_utils.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -123,13 +124,13 @@ static inline void ll_pinmux_config_pad(HPSYS_PINMUX_TypeDef *PINMUXx,
 }
 
 /**
- * @brief Set PAD FSEL field.
+ * @brief Configure PAD drive strength.
  * @param[in] PINMUXx PINMUX instance pointer.
  * @param[in] pad_index PAD index (0..HPSYS_PAD_NUM-1).
- * @param[in] fsel Raw FSEL field value (0..15).
+ * @param[in] drive Drive value from @ref LL_PINMUX_DRIVE.
  */
-static inline void ll_pinmux_set_fsel(HPSYS_PINMUX_TypeDef *PINMUXx,
-                                      uint32_t pad_index, uint32_t fsel)
+static inline void ll_pinmux_config_drive(HPSYS_PINMUX_TypeDef *PINMUXx,
+                                          uint32_t pad_index, uint32_t drive)
 {
     __IO uint32_t *pad_reg;
 
@@ -139,30 +140,50 @@ static inline void ll_pinmux_set_fsel(HPSYS_PINMUX_TypeDef *PINMUXx,
     }
 
     pad_reg = ll_pinmux_get_pad_reg(PINMUXx, pad_index);
-    MODIFY_REG(*pad_reg, HPSYS_PINMUX_PAD_SA00_FSEL_Msk,
-               (fsel << HPSYS_PINMUX_PAD_SA00_FSEL_Pos) &
-                   HPSYS_PINMUX_PAD_SA00_FSEL_Msk);
+    MODIFY_REG(*pad_reg,
+               HPSYS_PINMUX_PAD_SA00_DS0_Msk | HPSYS_PINMUX_PAD_SA00_DS1_Msk,
+               drive);
 }
 
 /**
- * @brief Get PAD FSEL field.
+ * @brief Configure PAD slew rate.
  * @param[in] PINMUXx PINMUX instance pointer.
  * @param[in] pad_index PAD index (0..HPSYS_PAD_NUM-1).
- * @return Raw FSEL field value.
+ * @param[in] slew Slew rate from @ref LL_PINMUX_SLEW.
  */
-static inline uint32_t ll_pinmux_get_fsel(HPSYS_PINMUX_TypeDef *PINMUXx,
-                                          uint32_t pad_index)
+static inline void ll_pinmux_set_slew_rate(HPSYS_PINMUX_TypeDef *PINMUXx,
+                                           uint32_t pad_index, uint32_t slew)
 {
     __IO uint32_t *pad_reg;
 
     if (ll_pinmux_is_valid_pad_index(pad_index) == 0U)
     {
-        return 0U;
+        return;
     }
 
     pad_reg = ll_pinmux_get_pad_reg(PINMUXx, pad_index);
-    return (*pad_reg & HPSYS_PINMUX_PAD_SA00_FSEL_Msk) >>
-           HPSYS_PINMUX_PAD_SA00_FSEL_Pos;
+    MODIFY_REG(*pad_reg, HPSYS_PINMUX_PAD_SA00_SR_Msk, slew);
+}
+
+/**
+ * @brief Configure PAD input type.
+ * @param[in] PINMUXx PINMUX instance pointer.
+ * @param[in] pad_index PAD index (0..HPSYS_PAD_NUM-1).
+ * @param[in] input_type Input type from @ref LL_PINMUX_INPUT_TYPE.
+ */
+static inline void ll_pinmux_set_input_type(HPSYS_PINMUX_TypeDef *PINMUXx,
+                                            uint32_t pad_index,
+                                            uint32_t input_type)
+{
+    __IO uint32_t *pad_reg;
+
+    if (ll_pinmux_is_valid_pad_index(pad_index) == 0U)
+    {
+        return;
+    }
+
+    pad_reg = ll_pinmux_get_pad_reg(PINMUXx, pad_index);
+    MODIFY_REG(*pad_reg, HPSYS_PINMUX_PAD_SA00_IS_Msk, input_type);
 }
 
 /**
@@ -246,13 +267,13 @@ static inline void ll_pinmux_config_pull(HPSYS_PINMUX_TypeDef *PINMUXx,
 }
 
 /**
- * @brief Configure PAD drive strength.
+ * @brief Set PAD FSEL field.
  * @param[in] PINMUXx PINMUX instance pointer.
  * @param[in] pad_index PAD index (0..HPSYS_PAD_NUM-1).
- * @param[in] drive Drive value from @ref LL_PINMUX_DRIVE.
+ * @param[in] fsel Raw FSEL field value (0..15).
  */
-static inline void ll_pinmux_config_drive(HPSYS_PINMUX_TypeDef *PINMUXx,
-                                          uint32_t pad_index, uint32_t drive)
+static inline void ll_pinmux_set_fsel(HPSYS_PINMUX_TypeDef *PINMUXx,
+                                      uint32_t pad_index, uint32_t fsel)
 {
     __IO uint32_t *pad_reg;
 
@@ -262,50 +283,30 @@ static inline void ll_pinmux_config_drive(HPSYS_PINMUX_TypeDef *PINMUXx,
     }
 
     pad_reg = ll_pinmux_get_pad_reg(PINMUXx, pad_index);
-    MODIFY_REG(*pad_reg,
-               HPSYS_PINMUX_PAD_SA00_DS0_Msk | HPSYS_PINMUX_PAD_SA00_DS1_Msk,
-               drive);
+    MODIFY_REG(*pad_reg, HPSYS_PINMUX_PAD_SA00_FSEL_Msk,
+               (fsel << HPSYS_PINMUX_PAD_SA00_FSEL_Pos) &
+                   HPSYS_PINMUX_PAD_SA00_FSEL_Msk);
 }
 
 /**
- * @brief Configure PAD input type.
+ * @brief Get PAD FSEL field.
  * @param[in] PINMUXx PINMUX instance pointer.
  * @param[in] pad_index PAD index (0..HPSYS_PAD_NUM-1).
- * @param[in] input_type Input type from @ref LL_PINMUX_INPUT_TYPE.
+ * @return Raw FSEL field value.
  */
-static inline void ll_pinmux_set_input_type(HPSYS_PINMUX_TypeDef *PINMUXx,
-                                            uint32_t pad_index,
-                                            uint32_t input_type)
+static inline uint32_t ll_pinmux_get_fsel(HPSYS_PINMUX_TypeDef *PINMUXx,
+                                          uint32_t pad_index)
 {
     __IO uint32_t *pad_reg;
 
     if (ll_pinmux_is_valid_pad_index(pad_index) == 0U)
     {
-        return;
+        return 0U;
     }
 
     pad_reg = ll_pinmux_get_pad_reg(PINMUXx, pad_index);
-    MODIFY_REG(*pad_reg, HPSYS_PINMUX_PAD_SA00_IS_Msk, input_type);
-}
-
-/**
- * @brief Configure PAD slew rate.
- * @param[in] PINMUXx PINMUX instance pointer.
- * @param[in] pad_index PAD index (0..HPSYS_PAD_NUM-1).
- * @param[in] slew Slew rate from @ref LL_PINMUX_SLEW.
- */
-static inline void ll_pinmux_set_slew_rate(HPSYS_PINMUX_TypeDef *PINMUXx,
-                                           uint32_t pad_index, uint32_t slew)
-{
-    __IO uint32_t *pad_reg;
-
-    if (ll_pinmux_is_valid_pad_index(pad_index) == 0U)
-    {
-        return;
-    }
-
-    pad_reg = ll_pinmux_get_pad_reg(PINMUXx, pad_index);
-    MODIFY_REG(*pad_reg, HPSYS_PINMUX_PAD_SA00_SR_Msk, slew);
+    return (*pad_reg & HPSYS_PINMUX_PAD_SA00_FSEL_Msk) >>
+           HPSYS_PINMUX_PAD_SA00_FSEL_Pos;
 }
 
 #ifdef __cplusplus

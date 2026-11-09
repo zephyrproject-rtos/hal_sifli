@@ -389,7 +389,6 @@ typedef enum IRQn
 #define I2C3_BASE           0x5009e000
 #define I2C4_BASE           0x5009f000
 //------------------------------------
-#define GPIO1_BASE          0x500a0000
 //------------------------------------
 #define GPTIM2_BASE         0x500b0000
 #define BTIM2_BASE          0x500b1000
@@ -420,7 +419,6 @@ typedef enum IRQn
 #define LPSYS_AON_BASE      0x40040000
 #define LPTIM3_BASE         0x40042000
 //------------------------------------
-#define GPIO2_BASE          0x40080000
 #define BT_RFC_MEM_BASE     0x40082000
 #define BT_RFC_REG_BASE     0x40082800
 #define BT_PHY_BASE         0x40084000
