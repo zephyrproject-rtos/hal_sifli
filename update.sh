@@ -28,13 +28,13 @@ cp -r $SIFLI_SDK/drivers/ll/sf32lb52x ll/
 
 # Remove LL unwanted files
 rm -rf \
-	ll/sf32lb52x/SConscript
- 
+	ll/sf32lb52x/SConscript \
+	ll/sf32lb52x/ll_gpio_ex.h
+
 mkdir ipc_queue
 cp -r $SIFLI_SDK/middleware/ipc_queue/common ipc_queue/common
 cp -r $SIFLI_SDK/middleware/ipc_queue/include/*.h ipc_queue/common
 cp -r $SIFLI_SDK/middleware/ipc_queue/porting/sf32lb52x/hcpu ipc_queue/sf32lb52x
-cp -r $SIFLI_SDK/middleware/include/bf0_mbox_common.h ipc_queue/common
 cp -r $SIFLI_SDK/middleware/include/sf_type.h ipc_queue/common
 
 # Remove ipc_queue unwanted files

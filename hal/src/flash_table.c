@@ -5,18 +5,8 @@
  */
 
 #include <string.h>
+#include <stdint.h>
 #include "flash_table.h"
-
-typedef enum
-{
-    NOR_TYPE0 = 0,  // normal type 0, DTR, NO CMD_WRSR2, Max 128Mb, as default command table
-    NOR_TYPE1,      // type 1, WRSR2 to write status register 2(QE), Max 128Mb
-    NOR_TYPE2,      // type 2, 256Mb, DTR, 4 bytes address command diff with 3 bytes, OTP support 4-B mode
-    NOR_TYPE3,      // type 3, 256Mb , NO DTR , 4 bytes command same to 3 bytes, only timing changed, OTP 3-B only
-    NOR_TYPE4,      // type 4, 256Mb, NO DTR, 4B ADDR command diff with 3B addr , OTP support 4-B mode
-    NOR_TYPE5,      // type 5, 256Mb, NO DTR, MXIC flash have too many diff with others
-    NOR_CMD_TABLE_CNT
-} FLASH_CMD_TABLE_ID_T;
 
 #define FLASH_DEFAULT_CMD_TABLE         (NOR_TYPE0)
 
@@ -503,12 +493,14 @@ FT_CONST FLASH_RDID_TYPE_T flash_cmd_id_pool_typ0[] =
     {0x68, 0x40, 0x18, 0, 0x1000000},   //BY25Q128ES_RDID
     {0x0B, 0x40, 0X18, 0, 0x1000000},   //XT25F128F_RDID
     {0xb3, 0x40, 0x18, 1, 0x1000000},   //UC25LQ128A
+    {0xef, 0x40, 0x18, 0, 0x1000000},   //W25Q128JV_RDID  //The 31h command is compatible with the old version 01h
     {FLASH_INVALID_ID, 0, 0, 0, 0},      //last one
 };
 
 FT_CONST FLASH_RDID_TYPE_T flash_cmd_id_pool_typ1[] =
 {
     {0x85, 0x60, 0x16, 1, 0x400000},    //P25Q32L_RDID
+    {0x85, 0x42, 0x16, 1, 0x400000},    //P25Q32L_RDID, old id
     {0x85, 0x60, 0x17, 1, 0x800000},    //P25Q64H_RDID, P25Q64SH
     {0x85, 0x60, 0x18, 1, 0x1000000},   //P25Q128L_RDID
     {0x85, 0x65, 0x18, 1, 0x1000000},   //P25Q128LA_RDID
@@ -517,7 +509,6 @@ FT_CONST FLASH_RDID_TYPE_T flash_cmd_id_pool_typ1[] =
     {0x85, 0x20, 0x18, 1, 0x1000000},   //PY25Q128HA
     {0x25, 0x70, 0x16, 0, 0x400000},    //SK25LE032_RDID
     {0xef, 0x60, 0x18, 0, 0x1000000},   //W25Q128JW_RDID
-    {0xef, 0x40, 0x18, 0, 0x1000000},   //W25Q128JV_RDID
     {0x0B, 0x60, 0X18, 0, 0x1000000},   //XT25Q128DW_RDID
     {0x5e, 0x50, 0x18, 0, 0x1000000},   //ZB25LQ128BW_RDID
     {0xa1, 0x28, 0x18, 0, 0x1000000},   //FM25W128_RDID
@@ -526,6 +517,9 @@ FT_CONST FLASH_RDID_TYPE_T flash_cmd_id_pool_typ1[] =
     {0xc8, 0x40, 0x17, 0, 0x800000},    //MD25Q64C_RDID
     {0x20, 0x40, 0X17, 1, 0x800000},    //XM25QH64D
     {0xcd, 0x60, 0X18, 0, 0x1000000},   //TH25Q128HA_RDID
+    {0xb3, 0x40, 0x17, 1, 0x800000},   //UC25WQ80IB
+    {0xb3, 0x40, 0x16, 1, 0x400000},   //UC25LQ32
+    {0xb3, 0x60, 0x14, 0, 0x100000},   //UC25WQ80IB
     {FLASH_INVALID_ID, 0, 0, 0, 0},      //last one
 };
 
@@ -537,6 +531,7 @@ FT_CONST FLASH_RDID_TYPE_T flash_cmd_id_pool_typ2[] =
     {0xef, 0x40, 0x19, 0, 0x2000000},   //W25Q256JVM_RDID
     {0x68, 0x49, 0x19, 0, 0x2000000},   //BY25Q256FS
     {0x5e, 0x40, 0x19, 0, 0x2000000},   //ZQ25Q256AW1G
+    {0xa1, 0x60, 0x19, 1, 0x2000000},   //FM25LP256_RDID
     {FLASH_INVALID_ID, 0, 0, 0, 0},      //last one
 };
 FT_CONST FLASH_RDID_TYPE_T flash_cmd_id_pool_typ3[] =
@@ -614,6 +609,14 @@ FT_CONST FLASH_RDID_TYPE_T *spi_flash_get_rdid(uint8_t fid, uint8_t did, uint8_t
     if ((fid == FLASH_INVALID_ID) || (fid == FLASH_UNKNOW_ID))
         return NULL;
 
+#if defined(CFG_FACTORY_DEBUG)
+    res = (FLASH_RDID_TYPE_T *)get_user_flash_cfg(0, fid, did, type, flash_type);
+    if (res != NULL)
+    {
+        return res;
+    }
+#endif
+
     for (i = 0; i < NOR_CMD_TABLE_CNT; i++)
     {
         res = flash_cmd_id_pool[i];
@@ -630,12 +633,7 @@ FT_CONST FLASH_RDID_TYPE_T *spi_flash_get_rdid(uint8_t fid, uint8_t did, uint8_t
     }
     if (i == NOR_CMD_TABLE_CNT)
     {
-#if defined(CFG_FACTORY_DEBUG)
-        res = (FLASH_RDID_TYPE_T *)get_user_flash_cfg(0, fid, did, type, flash_type);
-#else
-        res = NULL;
-#endif
-        //
+        res = (FLASH_RDID_TYPE_T *)spi_nor_get_user_flash_cfg(fid, did, type, flash_type);
     }
     else if (flash_type)
     {
@@ -654,8 +652,10 @@ const SPI_FLASH_FACT_CFG_T *spi_flash_get_cmd_by_id(uint8_t fid, uint8_t did, ui
 
     if (rdid)
         res = (const SPI_FLASH_FACT_CFG_T *)&flash_cmd_table_list[i];
+//#if defined(JLINK) ||  defined(KEIL)
     else // set a default table for nor flash
         res = &flash_cmd_table_list[FLASH_DEFAULT_CMD_TABLE];
+//#endif
     return res;
 }
 
@@ -679,4 +679,41 @@ int spi_flash_is_support_dtr(uint8_t fid, uint8_t did, uint8_t type)
         res = (rdid->ext_flags & DTR_SUPPORT_FLAG);
 
     return res;
+}
+
+uint32_t spi_flash_get_otp_base(uint8_t fid, uint8_t did, uint8_t mtype)
+{
+    uint32_t otp_base;
+
+    FT_CONST FLASH_RDID_TYPE_T *rdid = spi_flash_get_rdid(fid, did, mtype, NULL);
+    if (rdid)
+    {
+        if (EXT_FLAGS_OTP_BASE_TYPE_FFC000 == (rdid->ext_flags & EXT_FLAGS_OTP_BASE_TYPE_Msk))
+        {
+            otp_base = 0xFFC000;
+        }
+        else
+        {
+            otp_base = SPI_FLASH_OTP_DEFAULT_BASE;
+        }
+    }
+    else
+    {
+        otp_base = SPI_FLASH_OTP_DEFAULT_BASE;
+    }
+
+    return otp_base;
+}
+
+
+
+__WEAK const nor_ext_cfg_t *spi_nor_get_ext_cfg_by_id(uint8_t fid, uint8_t did, uint8_t mtype)
+{
+    return NULL;
+}
+
+
+__WEAK const FLASH_RDID_TYPE_T *spi_nor_get_user_flash_cfg(uint8_t fid, uint8_t did, uint8_t mtype, FLASH_CMD_TABLE_ID_T *cmd_tbl_type)
+{
+    return NULL;
 }

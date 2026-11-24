@@ -15,20 +15,24 @@ extern "C" {
 #include "bf0_hal_def.h"
 #include "bf0_pin_const.h"
 
+#if defined(PIN_MATRIX_FUNC_LIST)
+#define HAL_PINMUX_SUPPORT_MATRIX_FUNCTION
+#endif /* PIN_MATRIX_FUNC_LIST */
+
 /** @addtogroup BF0_HAL_Driver
-  * @{
-  */
+ * @{
+ */
 
 /** @addtogroup PINMUX PINMUX
-  * @{
-  */
+ * @{
+ */
 
 /* Exported types ------------------------------------------------------------*/
 
 /** @defgroup PIN_flags PIN pull flag
-  * @brief PIN Pull-Up or Pull-Down Activation
-  * @{
-  */
+ * @brief PIN Pull-Up or Pull-Down Activation
+ * @{
+ */
 // Pullup: PE=1, PS=1,
 // Pulldown:PE=1, PS=0
 // All pins has same flags position, use HPSYS_PINMUX_PAD_PA_00 flags
@@ -37,8 +41,31 @@ extern "C" {
 #define  PIN_PULLDOWN      (HPSYS_PINMUX_PAD_PA00_PE)                  /*!< Pull-down activation                */
 
 /**
- * @} PIN_flags
+ * @}
  */
+
+/**
+ * @brief Pin output driving capability.
+ *
+ * @note  DS1 and DS0 form the 2-bit driving strength field, DS1 is the low bit
+ *        and DS0 the high bit. The capability of each level is defined by the
+ *        chip datasheet and the definitions below must be kept consistent
+ *        with it.
+ *
+ *        | Level | DS0 | DS1 | Capability |
+ *        |-------|-----|-----|------------|
+ *        |   0   |  0  |  0  | 2mA        |
+ *        |   1   |  0  |  1  | 4mA        |
+ *        |   2   |  1  |  0  | 8mA        |
+ *        |   3   |  1  |  1  | 12mA       |
+ */
+typedef enum
+{
+    PIN_DS_2MA  = 0,        /*!< 2mA,  DS0 = 0, DS1 = 0 */
+    PIN_DS_4MA  = 1,        /*!< 4mA,  DS0 = 0, DS1 = 1 */
+    PIN_DS_8MA  = 2,        /*!< 8mA,  DS0 = 1, DS1 = 0 */
+    PIN_DS_12MA = 3,        /*!< 12mA, DS0 = 1, DS1 = 1 */
+} PIN_DrivingStrengthTypeDef;
 
 #ifdef SF32LB58X
 
@@ -49,6 +76,12 @@ extern "C" {
 #define SFPIN_MPI1_PIN_G32           (4)     // MPI1 USE GIGA 32Mb
 #define SFPIN_MPI1_PIN_G64           (5)     // MPI1 USE GIGA 64Mb
 #define SFPIN_MPI1_PIN_AUTO          (0XFF)
+
+
+typedef enum
+{
+    PIN_MPI_PIMMAP_MODE_INVALID = 0,
+} PIN_MpiPinmapMode;
 
 #elif defined(SF32LB56X)
 typedef enum
@@ -74,6 +107,50 @@ typedef enum
     SFPIN_SIP2_PY_NOR16 = 5
 } SFPIN_SIP2_MODE;
 
+typedef enum
+{
+    PIN_MPI_PIMMAP_MODE_INVALID = 0,
+    /* MPI1: Legacy OPI PSRAM, MPI2: Legacy OPI PSRAM */
+    PIN_MPI_PINMAP_MODE_1 = 1,
+    /* MPI1: Xccela OPI PSRAM, MPI2: Xccela OPI PSRAM */
+    PIN_MPI_PINMAP_MODE_2 = 2,
+    /* MPI1: HyperBus OPI PSRAM, MPI2: not used */
+    PIN_MPI_PINMAP_MODE_3 = 3,
+} PIN_MpiPinmapMode;
+
+
+#elif defined(SF32LB57X)
+
+/** MPI pinmap mode (bonding type) for SiP memory */
+typedef enum
+{
+    PIN_MPI_PINMAP_MODE_INVALID = 0,
+    /* bonding type 1 used by SiP PSRAM */
+    PIN_MPI_PINMAP_MODE_1 = 1,
+    /* bonding type 2 used by SiP PSRAM */
+    PIN_MPI_PINMAP_MODE_2 = 2,
+    /* bonding type 3 used by SiP PSRAM */
+    PIN_MPI_PINMAP_MODE_3 = 3,
+    /* bonding type 4 used by SiP NOR Flash
+     * for MPI2 and MPI3 NOR Flash (i.e. SipFlash2 and SipFlash3), no need to select bonding type,
+     * because the pinmux is fixed and not configurable
+     */
+    PIN_MPI_PINMAP_MODE_4 = 4,
+    /* bonding type 5 used by SiP NOR Flash
+     * for MPI2 and MPI3 NOR Flash (i.e. SipFlash2 and SipFlash3), no need to select bonding type,
+     * because the pinmux is fixed and not configurable
+     */
+    PIN_MPI_PINMAP_MODE_5 = 5,
+} PIN_MpiPinmapMode;
+
+#else
+
+/** MPI pinmap mode for SiP memory */
+typedef enum
+{
+    PIN_MPI_PINMAP_MODE_INVALID = 0,
+} PIN_MpiPinmapMode;
+
 #endif
 
 #ifdef SF32LB56X
@@ -85,7 +162,7 @@ typedef enum
         hwp_pinmux1->PAD_PA56 = 10;  \
     }                                \
     while (0)
-#elif defined(SF32LB52X)
+#elif defined(SF32LB52X) || defined(SF32LB57X)
 #define HAL_PIN_SetXT32()    \
     do                       \
     {                        \
@@ -114,15 +191,17 @@ typedef enum
 #ifdef SOC_BF0_HCPU
 #define PIN_SAVE_PINMUX_INSTANCE_SIZE       (HPSYS_PAD_NUM)
 #define PIN_SAVE_PINMUX_EXT_INSTANCE_SIZE   (HPSYS_CFG_PINR_SIZE)
-#else
+#elif defined(LPSYS_PAD_NUM)
 #define PIN_SAVE_PINMUX_INSTANCE_SIZE       (LPSYS_PAD_NUM)
 #define PIN_SAVE_PINMUX_EXT_INSTANCE_SIZE   (LPSYS_CFG_PINR_SIZE)
 #endif /* SOC_BF0_HCPU */
 
 typedef struct
 {
+#ifdef PIN_SAVE_PINMUX_INSTANCE_SIZE
     uint32_t pad_regs[PIN_SAVE_PINMUX_INSTANCE_SIZE];
     uint32_t ext_regs[PIN_SAVE_PINMUX_EXT_INSTANCE_SIZE];
+#endif /* PIN_SAVE_PINMUX_INSTANCE_SIZE */
 } PIN_BackupBufTypeDef;
 
 
@@ -132,13 +211,12 @@ typedef struct
  */
 
 /**
-  * @brief  Select pin function only.
-  * @param  pad: physical pin, #pin_pad
-  * @param  func: Pin function.
-  * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
-  */
+ * @brief  Select pin function only.
+ * @param  pad: physical pin, #pin_pad
+ * @param  func: Pin function.
+ * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
+ */
 void HAL_PIN_Select(int pad, int func, int hcpu);
-
 
 /**
  * @brief  Set pin function.
@@ -146,38 +224,72 @@ void HAL_PIN_Select(int pad, int func, int hcpu);
  * @param  func: Pin function.
  * @param  flags: flag of the pin (pullup/pulldown), @ref PIN_flags
  * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
- * @retval -1 if invalid, otherwise 0
+ * @return whether pin function set succeed
+ * @retval -1 fail
+ * @retval 0  success
  */
 int HAL_PIN_Set(int pad, pin_function func, int flags, int hcpu);
 
 
+#ifdef HAL_PINMUX_SUPPORT_MATRIX_FUNCTION
 /**
-  * @brief  Set pin for analog function, fix for ROM patch, avoid pin_const update.
-  * @param  pad: physical pin, #pin_pad
-  * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
-  * @retval -1 if invalid, otherwise 0
-  */
+ * @brief  Set pin function defined at compile time
+ *
+ *  #HAL_PIN_Set is used to set pin function defined at runtime
+ *  This macro is used to set pin function defined at compile time.
+ *  If pad and function not match, compile error would be triggered.
+ *
+ * @param  pad: physical pin, #pin_pad
+ * @param  func: Pin function.
+ * @param  flags: flag of the pin (pullup/pulldown), @ref PIN_flags
+ * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
+ * @return whether pin function set succeed
+ * @retval -1 fail
+ * @retval 0  success
+ */
+#define HAL_PIN_CompileTimeSet(pad, func, flags, hcpu)   \
+    HAL_PIN_Set2(HAL_CONCAT_2(HAL_CONCAT_2(pad, _),func), flags)
+
+/**
+ * @brief  Set pin function.
+ * @param  pad: physical pin, #pin_pad
+ * @param  func: Pin function.
+ * @param  flags: flag of the pin (pullup/pulldown), @ref PIN_flags
+ * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
+ * @return whether pin function set succeed
+ * @retval -1 fail
+ * @retval 0  success
+ */
+int HAL_PIN_Set2(pin_function2 func, int flags);
+#endif /* HAL_PINMUX_SUPPORT_MATRIX_FUNCTION */
+
+/**
+ * @brief  Set pin for analog function, fix for ROM patch, avoid pin_const update.
+ * @param  pad: physical pin, #pin_pad
+ * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
+ * @retval -1 if invalid, otherwise 0
+ */
 int HAL_PIN_Set_Analog(int pad, int hcpu);
 
 
 /**
-  * @brief  Update pin flags.
-  * @param  pad: physical pin, #pin_pad
-  * @param  flags: Flags for the pin to update
-  * @param  mask: Mask of the flags
-  * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
-  * @retval -1 if invalid, otherwise 0
-  */
+ * @brief  Update pin flags.
+ * @param  pad: physical pin, #pin_pad
+ * @param  flags: Flags for the pin to update
+ * @param  mask: Mask of the flags
+ * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
+ * @retval -1 if invalid, otherwise 0
+ */
 int HAL_PIN_Update(int pad, uint32_t flags, uint32_t mask, int hcpu);
 
 /**
-  * @brief  Get pin function.
-  * @param  pad: physical pin, refer #pin_pad
-  * @param  p_func: Pointer of variable to save pin function.
-  * @param  p_mode: Pointer of varibale to save flag of the pin mode, see PIN_ModeTypeDef
-  * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
-  * @retval -1 if invalid, else function idx(>= 0)
-  */
+ * @brief  Get pin function.
+ * @param  pad: physical pin, refer #pin_pad
+ * @param  p_func: Pointer of variable to save pin function.
+ * @param  p_mode: Pointer of varibale to save flag of the pin mode, see PIN_ModeTypeDef
+ * @param  hcpu: 1: pin for hcpu; 0: pin for lcpu. It's obsolete, not used anymore
+ * @retval -1 if invalid, else function idx(>= 0)
+ */
 int HAL_PIN_Get(int pad, pin_function *p_func, PIN_ModeTypeDef *p_mode, int hcpu);
 
 /**
@@ -197,6 +309,23 @@ int HAL_PIN_Set_DS0(int pad, int hcpu, uint8_t set);
  * @retval -1 if invalid, otherwise 0
  */
 int HAL_PIN_Set_DS1(int pad, int hcpu, uint8_t set);
+
+/**
+ * @brief  Set pin driving capability.
+ *
+ *         Wrapper of HAL_PIN_Set_DS0() and HAL_PIN_Set_DS1(), so that the four
+ *         driving strength levels can be selected by name instead of by the raw
+ *         DS0/DS1 bit pair. Prefer this over calling the two functions directly.
+ *
+ * @param  pad physical pin, #pin_pad
+ * @param  ds driving capability, see PIN_DrivingStrengthTypeDef
+ *           @arg @ref PIN_DS_2MA
+ *           @arg @ref PIN_DS_4MA
+ *           @arg @ref PIN_DS_8MA
+ *           @arg @ref PIN_DS_12MA
+ * @retval HAL_OK if success, HAL_ERROR if pad is invalid
+ */
+HAL_StatusTypeDef HAL_PIN_SetDS(int pad, PIN_DrivingStrengthTypeDef ds);
 
 /**
  * @brief  Set pin mode
@@ -238,6 +367,27 @@ void HAL_PIN_Set_Single_flash2_default(void);
 void HAL_PIN_Set_Dual_flash2_default(void);
 
 /**
+ * @brief Set SiP MPI1 flash pinmux
+ *
+ * @param pinmap_mode pinmap mode
+ */
+void HAL_PIN_SetSipFlash1(PIN_MpiPinmapMode pinmap_mode);
+
+/**
+ * @brief Set SiP MPI2 flash pinmux
+ *
+ * @param pinmap_mode pinmap mode
+ */
+void HAL_PIN_SetSipFlash2(PIN_MpiPinmapMode pinmap_mode);
+
+/**
+ * @brief Set SiP MPI3 flash pinmux
+ *
+ * @param pinmap_mode pinmap mode
+ */
+void HAL_PIN_SetSipFlash3(PIN_MpiPinmapMode pinmap_mode);
+
+/**
  * @brief  Set pinmux for flash3.
  */
 void HAL_PIN_SetFlash3(void);
@@ -246,6 +396,21 @@ void HAL_PIN_SetFlash3(void);
  * @brief  Set pinmux for flash4.
  */
 void HAL_PIN_SetFlash4(void);
+
+
+/**
+ * @brief Set SiP MPI1 psram pinmux
+ *
+ * @param pinmap_mode pinmap mode
+ */
+void HAL_PIN_SetSipPsram1(PIN_MpiPinmapMode pinmap_mode);
+
+/**
+ * @brief Set SiP MPI2 psram pinmux
+ *
+ * @param pinmap_mode pinmap mode
+ */
+void HAL_PIN_SetSipPsram2(PIN_MpiPinmapMode pinmap_mode);
 
 #ifdef SF32LB58X
 #define MPI1_PIN_HPSRAM  (0)
@@ -295,16 +460,16 @@ HAL_StatusTypeDef HAL_PIN_Backup(PIN_BackupBufTypeDef *buf);
 HAL_StatusTypeDef HAL_PIN_Restore(PIN_BackupBufTypeDef *buf);
 
 /**
-  * @} PIN_Exported_Functions
-  */
+ * @} PIN_Exported_Functions
+ */
 
 /**
-  * @} PINMUX
-  */
+ * @} PINMUX
+ */
 
 /**
-  * @} BF0_HAL_Driver
-  */
+ * @} BF0_HAL_Driver
+ */
 
 #ifdef __cplusplus
 }

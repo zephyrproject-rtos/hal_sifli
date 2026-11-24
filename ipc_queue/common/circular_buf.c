@@ -15,6 +15,65 @@
     #define __ROM_USED
 #endif
 
+#ifdef DBG_CIRCULAR_BUFFER
+uint8_t g_cb_backup[512];
+void circular_buf_log(struct circular_buf *cb, int idx, const uint8_t *data, int len)
+{
+    if (cb && cb->backup_ptr)
+    {
+        uint8_t *g_cb_buf_b = (uint8_t *)&g_cb_backup[0];
+        memcpy(g_cb_buf_b + idx, data, len);
+    }
+}
+void circular_buf_set_backup(struct circular_buf *cb)
+{
+    if (cb)
+    {
+#ifdef SOC_BF0_HCPU
+        if (HCPU2LCPU_MB_CH1_BUF_START_ADDR == (uint32_t)cb)
+        {
+            cb->backup_ptr = (uint8_t *)HCPU_ADDR_2_LCPU_ADDR((uint32_t)g_cb_backup);
+        }
+        else
+        {
+            cb->backup_ptr = 0;
+        }
+#else
+        if (LCPU2HCPU_MB_CH1_BUF_START_ADDR == (uint32_t)cb)
+        {
+            cb->backup_ptr = (uint8_t *)LCPU_ADDR_2_HCPU_ADDR((uint32_t)g_cb_backup);
+        }
+        else
+        {
+            cb->backup_ptr = 0;
+        }
+#endif
+    }
+}
+
+void circular_buf_validate(struct circular_buf *cb, int idx, uint8_t *data, int len)
+{
+    uint8_t i = 0;
+    if (cb && cb->magic == DBG_CIRCULAR_MAGIC && cb->backup_ptr)
+    {
+        if (len && memcmp(cb->backup_ptr + idx, data, len))
+        {
+            for (i = 0; i < 2; i++)
+            {
+                memcpy(data, &cb->rd_buffer_ptr[idx], len);
+                if (memcmp(cb->backup_ptr + idx, data, len) == 0)
+                {
+                    break;
+                }
+            }
+            if (i == 2)
+            {
+                RT_ASSERT(0);
+            }
+        }
+    }
+}
+#endif
 
 static inline enum circular_buf_state circular_buf_status(struct circular_buf *cb, uint32_t rd_ptr, uint32_t wr_ptr)
 {
@@ -74,6 +133,9 @@ __ROM_USED void circular_buf_wr_init(struct circular_buf *cb,
     /* set buffer pool for write and size */
     cb->wr_buffer_ptr = pool;
     cb->buffer_size = size & ~3UL;
+#ifdef  DBG_CIRCULAR_BUFFER
+    cb->magic = DBG_CIRCULAR_MAGIC;
+#endif
 }
 
 __ROM_USED void circular_buf_rd_init(struct circular_buf *cb,
@@ -120,9 +182,11 @@ __ROM_USED size_t circular_buf_put(struct circular_buf *cb,
     {
         /* read_index - write_index = empty space */
         memcpy(&cb->wr_buffer_ptr[wr_idx], ptr, length);
+        circular_buf_log(cb, wr_idx, ptr, length);
         /* this should not cause overflow because there is enough space for
          * length of data in current mirror */
         wr_idx += length;
+        CB_DMB();
         cb->write_idx_mirror = CB_MAKE_PTR_IDX_MIRROR(wr_idx, wr_mirror);
         return length;
     }
@@ -130,13 +194,22 @@ __ROM_USED size_t circular_buf_put(struct circular_buf *cb,
     memcpy(&cb->wr_buffer_ptr[wr_idx],
            &ptr[0],
            cb->buffer_size - wr_idx);
-    memcpy(&cb->wr_buffer_ptr[0],
-           &ptr[cb->buffer_size - wr_idx],
-           length - (cb->buffer_size - wr_idx));
-
+    circular_buf_log(
+        cb, wr_idx, &ptr[0],
+        cb->buffer_size - wr_idx);
+    if ((length - (cb->buffer_size - wr_idx)) > 0)
+    {
+        memcpy(&cb->wr_buffer_ptr[0],
+               &ptr[cb->buffer_size - wr_idx],
+               length - (cb->buffer_size - wr_idx));
+        circular_buf_log(
+            cb, 0, &ptr[cb->buffer_size - wr_idx],
+            length - (cb->buffer_size - wr_idx));
+    }
     /* we are going into the other side of the mirror */
     wr_mirror = ~wr_mirror;
     wr_idx = length - (cb->buffer_size - wr_idx);
+    CB_DMB();
     cb->write_idx_mirror = CB_MAKE_PTR_IDX_MIRROR(wr_idx, wr_mirror);
 
     return length;
@@ -236,8 +309,11 @@ __ROM_USED size_t circular_buf_get(struct circular_buf *cb,
     rd_mirror = CB_GET_PTR_MIRROR(cb->read_idx_mirror);
     if (cb->buffer_size - rd_idx > length)
     {
+        CB_DMB();
+
         /* copy all of data */
         memcpy(ptr, &cb->rd_buffer_ptr[rd_idx], length);
+        circular_buf_validate(cb, rd_idx, ptr, length);
         /* this should not cause overflow because there is enough space for
          * length of data in current mirror */
         rd_idx += length;
@@ -245,12 +321,16 @@ __ROM_USED size_t circular_buf_get(struct circular_buf *cb,
         return length;
     }
 
+    CB_DMB();
+
     memcpy(&ptr[0],
            &cb->rd_buffer_ptr[rd_idx],
            cb->buffer_size - rd_idx);
+    circular_buf_validate(cb, rd_idx, ptr, cb->buffer_size - rd_idx);
     memcpy(&ptr[cb->buffer_size - rd_idx],
            &cb->rd_buffer_ptr[0],
            length - (cb->buffer_size - rd_idx));
+    circular_buf_validate(cb, 0, &ptr[cb->buffer_size - rd_idx], length - (cb->buffer_size - rd_idx));
 
     /* we are going into the other side of the mirror */
     rd_mirror = ~rd_mirror;
@@ -292,8 +372,11 @@ __ROM_USED size_t circular_buf_get_and_update_len(struct circular_buf *cb,
     if (cb->buffer_size - rd_idx > length)
     {
 
+        CB_DMB();
+
         /* copy all of data */
         memcpy(ptr, &cb->rd_buffer_ptr[rd_idx], length);
+        circular_buf_validate(cb, rd_idx, ptr, length);
 
         mask = os_interrupt_disable();
 
@@ -312,12 +395,16 @@ __ROM_USED size_t circular_buf_get_and_update_len(struct circular_buf *cb,
         return length;
     }
 
+    CB_DMB();
+
     memcpy(&ptr[0],
            &cb->rd_buffer_ptr[rd_idx],
            cb->buffer_size - rd_idx);
+    circular_buf_validate(cb, rd_idx, ptr, cb->buffer_size - rd_idx);
     memcpy(&ptr[cb->buffer_size - rd_idx],
            &cb->rd_buffer_ptr[0],
            length - (cb->buffer_size - rd_idx));
+    circular_buf_validate(cb, 0, &ptr[cb->buffer_size - rd_idx], length - (cb->buffer_size - rd_idx));
 
     mask = os_interrupt_disable();
 
@@ -367,6 +454,7 @@ __ROM_USED size_t circular_buf_putchar(struct circular_buf *cb, const uint8_t ch
     {
         wr_idx++;
     }
+    CB_DMB();
     cb->write_idx_mirror = CB_MAKE_PTR_IDX_MIRROR(wr_idx, wr_mirror);
 
     return 1;
@@ -414,6 +502,13 @@ __ROM_USED size_t circular_buf_putchar_force(struct circular_buf *cb, const uint
         }
     }
 
+    /* Store the advanced write pointer, as circular_buf_putchar does. Without
+     * it the byte written above is in the buffer but not accounted for: the
+     * oldest byte has been dropped and the newest not counted, so a forced put
+     * into a full buffer *shrinks* it by one instead of keeping it at
+     * capacity -- which is what this function's own comment promises. */
+    cb->write_idx_mirror = CB_MAKE_PTR_IDX_MIRROR(wr_idx, wr_mirror);
+
     return 1;
 }
 
@@ -433,6 +528,8 @@ __ROM_USED size_t circular_buf_getchar(struct circular_buf *cb, uint8_t *ch)
 
     rd_idx = CB_GET_PTR_IDX(cb->read_idx_mirror);
     rd_mirror = CB_GET_PTR_MIRROR(cb->read_idx_mirror);
+
+    CB_DMB();
 
     /* put character */
     *ch = cb->rd_buffer_ptr[rd_idx];

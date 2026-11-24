@@ -11,27 +11,24 @@
 
 
 /** @addtogroup BF0_HAL_Driver
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup PMU PMU
-  * @brief PMU HAL module driver
-  * @{
-  */
+ * @brief PMU HAL module driver
+ * @{
+ */
 
 #ifdef HAL_PMU_MODULE_ENABLED
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
 
     #define PMU_CHG_CAL_TARGET_VOLT (4200)
 
 #endif /* SF32LB52X */
 
-#ifdef SF32LB55X
-    #define PMU_WAKEUP_PIN_NUM  LPSYS_AON_WSR_PIN_NUM
-#else
-    #define PMU_WAKEUP_PIN_NUM  (2)
-#endif /* SF32LB55X */
+
+#define PMU_WAKEUP_PIN_NUM  PMUC_WSR_PIN_NUM
 
 #ifdef SF32LB58X
     #define PMU_WAKEUP_PIN_SEL_NUM (16)
@@ -39,7 +36,7 @@
     #define PMU_WAKEUP_PIN_SEL_NUM (LPSYS_AON_WSR_PIN_NUM)
 #endif /* SF32LB58X */
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
 #define PMU_CHG_RESET()  \
     do   \
     {    \
@@ -63,20 +60,26 @@ HAL_RETM_BSS_SECT(pmu_cal_data, static PMU_CalDataTypeDef pmu_cal_data);
 
 static inline int16_t PMU_RoundF_I16(float val)
 {
-	if (val < 0.0f) {
-		return (int16_t)(val - 0.5f);
-	} else {
-		return (int16_t)(val + 0.5f);
-	}
+    if (val < 0.0f)
+    {
+        return (int16_t)(val - 0.5f);
+    }
+    else
+    {
+        return (int16_t)(val + 0.5f);
+    }
 }
 
 static inline uint16_t PMU_RoundF_U16(float val)
 {
-	if (val < 0.0f) {
-		return 0U;
-	} else {
-		return (uint16_t)(val + 0.5f);
-	}
+    if (val < 0.0f)
+    {
+        return 0U;
+    }
+    else
+    {
+        return (uint16_t)(val + 0.5f);
+    }
 }
 
 #ifdef PMUC_CR_PIN0_SEL
@@ -105,11 +108,16 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_SelectWakeupPin(uint8_t pin, uint8_t ao
     }
 #endif /* SF32LB52X && hwp_pbr */
 
+#ifdef RTC_PAWK0R_IE
+    /* enable IE */
+    hwp_rtc->PAWK0R |= 1 << aon_wakeup_pin;
+#endif /* RTC_PAWK0R_IE */
+
     return HAL_OK;
 }
 #endif /* PMUC_CR_PIN0_SEL */
 
-
+#ifdef PMUC_WER_PIN0
 __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnablePinWakeup(uint8_t pin, uint8_t mode)
 {
     uint32_t mask;
@@ -149,6 +157,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_DisablePinWakeup(uint8_t pin)
 
     return HAL_OK;
 }
+#endif /* PMUC_WER_PIN0 */
 
 __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableRtcWakeup()
 {
@@ -167,7 +176,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_DisableRtcWakeup()
 
 __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC10Kconfig(void)
 {
-#ifdef SF32LB52X
+#if defined(SF32LB52X)
     MODIFY_REG(hwp_pmuc->LRC10_CR, PMUC_LRC10_CR_CMPBM1_Msk | PMUC_LRC10_CR_CMPBM2_Msk | PMUC_LRC10_CR_CHGCAP_Msk | PMUC_LRC10_CR_REFRES_Msk,
                MAKE_REG_VAL(3, PMUC_LRC10_CR_CMPBM1_Msk, PMUC_LRC10_CR_CMPBM1_Pos) |
                MAKE_REG_VAL(1, PMUC_LRC10_CR_CMPBM2_Msk, PMUC_LRC10_CR_CMPBM2_Pos) |
@@ -196,7 +205,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC10Kconfig(void)
 
 
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
     HAL_RAM_RET_CODE_SECT(HAL_PMU_EnterHibernate,  __HAL_ROM_USED void HAL_PMU_EnterHibernate(void))
 #else
     __HAL_ROM_USED void HAL_PMU_EnterHibernate(void)
@@ -209,7 +218,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC10Kconfig(void)
     HAL_RCC_Reset_and_Halt_LCPU(1);
 #endif
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X)
     /* reduce VBAT_LDO output voltage to 3V to avoid leakage current if VCC is lower than 3.3V */
     MODIFY_REG(hwp_pmuc->AON_LDO, PMUC_AON_LDO_VBAT_LDO_SET_VOUT_Msk,
                MAKE_REG_VAL(0, PMUC_AON_LDO_VBAT_LDO_SET_VOUT_Msk, PMUC_AON_LDO_VBAT_LDO_SET_VOUT_Pos));
@@ -228,7 +237,8 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC10Kconfig(void)
 
     /* configure default delays in boot options when not set */
     uint32_t bootopt = HAL_Get_backup(RTC_BACKUP_BOOTOPT);
-    if ((bootopt & (RTC_BACKUP_BOOTOPT_PD_DELAY_Msk | RTC_BACKUP_BOOTOPT_PU_DELAY_Msk)) == 0U) {
+    if ((bootopt & (RTC_BACKUP_BOOTOPT_PD_DELAY_Msk | RTC_BACKUP_BOOTOPT_PU_DELAY_Msk)) == 0U)
+    {
         HAL_Set_backup(RTC_BACKUP_BOOTOPT,
                        (bootopt |
                         RTC_BACKUP_BOOTOPT_PD_DELAY_MS(5) |
@@ -247,7 +257,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC10Kconfig(void)
     while (1) {};
 }
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
     HAL_RAM_RET_CODE_SECT(HAL_PMU_EnterShutdown, __HAL_ROM_USED void HAL_PMU_EnterShutdown(void))
 #else
     __HAL_ROM_USED void HAL_PMU_EnterShutdown(void)
@@ -260,7 +270,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC10Kconfig(void)
     HAL_RCC_Reset_and_Halt_LCPU(1);
 #endif
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X)
     /* reduce VBAT_LDO output voltage to 3V to avoid leakage current if VCC is lower than 3.3V */
     MODIFY_REG(hwp_pmuc->AON_LDO, PMUC_AON_LDO_VBAT_LDO_SET_VOUT_Msk,
                MAKE_REG_VAL(0, PMUC_AON_LDO_VBAT_LDO_SET_VOUT_Msk, PMUC_AON_LDO_VBAT_LDO_SET_VOUT_Pos));
@@ -279,7 +289,8 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC10Kconfig(void)
 
     /* configure default delays in boot options when not set */
     uint32_t bootopt = HAL_Get_backup(RTC_BACKUP_BOOTOPT);
-    if ((bootopt & (RTC_BACKUP_BOOTOPT_PD_DELAY_Msk | RTC_BACKUP_BOOTOPT_PU_DELAY_Msk)) == 0U) {
+    if ((bootopt & (RTC_BACKUP_BOOTOPT_PD_DELAY_Msk | RTC_BACKUP_BOOTOPT_PU_DELAY_Msk)) == 0U)
+    {
         HAL_Set_backup(RTC_BACKUP_BOOTOPT,
                        (bootopt |
                         RTC_BACKUP_BOOTOPT_PD_DELAY_MS(5) |
@@ -320,6 +331,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_CheckBootMode(PMU_BootModeTypeDef *boot
     {
         if (hwp_pmuc->CR & PMUC_CR_HIBER_EN)
         {
+#ifdef PMUC_CR_SEL_LPCLK
             if (hwp_pmuc->CR & PMUC_CR_SEL_LPCLK)
             {
                 /* use LXT32, RTC can wakeup system on time */
@@ -331,6 +343,12 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_CheckBootMode(PMU_BootModeTypeDef *boot
                 *boot_mode = PMU_SHUTDOWN_BOOT;
                 hwp_rtc->ISR &= ~RTC_ISR_INIT;
             }
+#else
+            *boot_mode = PMU_HIBERNATE_BOOT;
+            //TODO:
+            // hwp_rtc->ISR &= ~RTC_ISR_INIT;
+
+#endif /* PMUC_CR_SEL_LPCLK */
             hwp_pmuc->CR &= ~PMUC_CR_HIBER_EN;
         }
         else
@@ -365,11 +383,12 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableXTAL32(void)
     uint32_t val = hwp_pmuc->LXT_CR;
     hwp_pmuc->LXT_CR &= ~(PMUC_LXT_CR_EN | PMUC_LXT_CR_RSN);     // Disable LXT
 
+
 #ifdef BPS_V33_HAL
     //HAL_Delay_us(0);
     //HAL_Delay_us(10);
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
 #error "No need to enable V33 for 52x"
 #endif /* SF32LB52X */
 
@@ -404,7 +423,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableXTAL32(void)
     return HAL_OK;
 }
 
-#if defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X)
+#if defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X) || defined(SF32LB57X)
 __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableAudio(int enable)
 {
     if (enable)
@@ -425,7 +444,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableDLL(int enable)
 }
 
 
-__HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_DisableXTAL32(void)
+HAL_RAM_RET_CODE_SECT(HAL_PMU_DisableXTAL32, __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_DisableXTAL32(void))
 {
     hwp_pmuc->LXT_CR &= ~(PMUC_LXT_CR_EN | PMUC_LXT_CR_RSN);
 
@@ -438,7 +457,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_LXTReady()
     HAL_StatusTypeDef ret = HAL_OK;
 
 #ifdef FPGA
-    //rdy signal from analog FPGA needn't check
+    //rdy signal from analog, FPGA needn't check
     return ret;
 #endif
 
@@ -478,7 +497,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_LXTReady()
 HAL_StatusTypeDef HAL_PMU_EnableRC32K(int enable)
 {
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
     if (enable)
     {
         hwp_pmuc->LRC32_CR |= PMUC_LRC32_CR_EN;
@@ -497,7 +516,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC32KReady()
 {
     HAL_StatusTypeDef ret = HAL_OK;
 
-#if defined(SF32LB52X)
+#if defined(SF32LB52X) || defined(SF32LB57X)
     if (0 == (hwp_pmuc->LRC32_CR & PMUC_LRC32_CR_RDY))
     {
         // Wait for at most around 1s (if current is RC10K,freq 10000)
@@ -511,10 +530,12 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_RC32KReady()
     return ret;
 }
 
-__HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_LpCLockSelect(PMU_LpClockTypeDef lp_clock)
+#ifndef SF32LB57X
+HAL_RAM_RET_CODE_SECT(HAL_PMU_LpCLockSelect, __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_LpCLockSelect(PMU_LpClockTypeDef lp_clock))
 {
     HAL_StatusTypeDef ret = HAL_ERROR;
 
+#ifdef PMUC_CR_SEL_LPCLK
     if (PMU_LPCLK_RC10 == lp_clock)
     {
         hwp_pmuc->CR &= ~PMUC_CR_SEL_LPCLK;
@@ -522,7 +543,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_LpCLockSelect(PMU_LpClockTypeDef lp_clo
     }
     else
     {
-#ifdef SF32LB52X
+#if defined(SF32LB52X)
         // 54x switch between RC32K and RC10K
         if (PMU_LPCLK_RC32 == lp_clock)
         {
@@ -545,14 +566,18 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_LpCLockSelect(PMU_LpClockTypeDef lp_clo
             }
             MODIFY_REG(hwp_pmuc->LRC_CR, PMUC_LRC_CR_CHGCRT_Msk, MAKE_REG_VAL(3, PMUC_LRC_CR_CHGCRT_Msk, PMUC_LRC_CR_CHGCRT_Pos));
         }
-#endif
+#endif /* SF32LB52X */
         hwp_pmuc->CR |= PMUC_CR_SEL_LPCLK;
         ret = HAL_OK;
     }
+#else
+    ret = HAL_OK;
+#endif
     return ret;
 }
+#endif /* SF32LB57X */
 
-#if !defined(SF32LB56X)&&!defined(SF32LB52X)
+#if !defined(SF32LB56X)&&!defined(SF32LB52X)&&!defined(SF32LB57X)
 __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableBuck2(void)
 {
     if (0 == (hwp_pmuc->BUCK2_CR & PMUC_BUCK2_CR_BUCK2_EN))
@@ -571,7 +596,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableBuck2(void)
 }
 #endif /* SF32LB56X */
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
     HAL_RAM_RET_CODE_SECT(HAL_PMU_Reboot,  __HAL_ROM_USED void HAL_PMU_Reboot(void))
 #else
     __HAL_ROM_USED void HAL_PMU_Reboot(void)
@@ -584,7 +609,7 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableBuck2(void)
     HAL_RCC_Reset_and_Halt_LCPU(1);
 #endif
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X)
     /* turn off LDO2 to ensure flash changing to 3byte address mode when boot up */
     HAL_PMU_ConfigPeriLdo(PMU_PERI_LDO2_3V3, 0, 1);
     HAL_Delay_us_(8000);
@@ -600,7 +625,8 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PMU_EnableBuck2(void)
 
     /* configure default delays in boot options when not set */
     uint32_t bootopt = HAL_Get_backup(RTC_BACKUP_BOOTOPT);
-    if ((bootopt & (RTC_BACKUP_BOOTOPT_PD_DELAY_Msk | RTC_BACKUP_BOOTOPT_PU_DELAY_Msk)) == 0U) {
+    if ((bootopt & (RTC_BACKUP_BOOTOPT_PD_DELAY_Msk | RTC_BACKUP_BOOTOPT_PU_DELAY_Msk)) == 0U)
+    {
         HAL_Set_backup(RTC_BACKUP_BOOTOPT,
                        (bootopt |
                         RTC_BACKUP_BOOTOPT_PD_DELAY_MS(5) |
@@ -642,15 +668,29 @@ HAL_RAM_RET_CODE_SECT(HAL_PMU_SET_HXT_CBANK, __HAL_ROM_USED void HAL_PMU_SET_HXT
 
 __HAL_ROM_USED void HAL_PMU_SetWdt(uint32_t instance)
 {
-#ifdef SF32LB55X
+#ifdef PMUC_WER_IWDT
     if (instance == IWDT_BASE)
+    {
         hwp_pmuc->WER |= PMUC_WER_IWDT;
+    }
 #else
-    if (instance == WDT1_BASE)
+    if (0)
+    {
+
+    }
+#endif /* PMUC_WER_IWDT */
+#ifdef PMUC_WER_WDT1
+    else if (instance == WDT1_BASE)
+    {
         hwp_pmuc->WER |= PMUC_WER_WDT1;
+    }
+#endif /* PMUC_WER_WDT1 */
+#ifdef PMUC_WER_WDT2
     else if (instance == WDT2_BASE)
+    {
         hwp_pmuc->WER |= PMUC_WER_WDT2;
-#endif /* SF32LB58X */
+    }
+#endif /* PMUC_WER_WDT2 */
 }
 
 #ifdef SF32LB56X
@@ -687,7 +727,8 @@ void HAL_PMU_ConfigDBL96(bool enabled)
 }
 #endif /* SF32LB56X */
 
-#ifdef SF32LB52X
+//TODO:
+#if defined(SF32LB52X) || defined(SF32LB57X)
 
 HAL_StatusTypeDef HAL_PMU_ChgInit(PMU_ChgHandleTypeDef *handle, PMU_ChgCalParamTypeDef *cal_param)
 {
@@ -1243,7 +1284,7 @@ __EXIT:
     return percent;
 }
 
-
+#ifdef SF32LB52X
 HAL_RAM_RET_CODE_SECT(HAL_PMU_ConfigPeriLdo, HAL_StatusTypeDef HAL_PMU_ConfigPeriLdo(PMU_PeriLdoTypeDef ldo, bool en, bool wait))
 {
     uint32_t mask;
@@ -1254,7 +1295,6 @@ HAL_RAM_RET_CODE_SECT(HAL_PMU_ConfigPeriLdo, HAL_StatusTypeDef HAL_PMU_ConfigPer
         /* letter series doesn't support PERI_LDO V33 */
         return HAL_OK;
     }
-
 #ifndef HAL_VDDSIP_LDO18_ENABLE
     if (SF32LB52X_LETTER_SERIES())
     {
@@ -1262,7 +1302,6 @@ HAL_RAM_RET_CODE_SECT(HAL_PMU_ConfigPeriLdo, HAL_StatusTypeDef HAL_PMU_ConfigPer
         return HAL_OK;
     }
 #endif /* !HAL_VDDSIP_LDO18_ENABLE */
-
 
     if ((PMU_PERI_LDO_1V8 != ldo)
             && (PMU_PERI_LDO2_3V3 != ldo)
@@ -1295,9 +1334,12 @@ HAL_RAM_RET_CODE_SECT(HAL_PMU_ConfigPeriLdo, HAL_StatusTypeDef HAL_PMU_ConfigPer
 
     return HAL_OK;
 }
-
 #endif /* SF32LB52X */
 
+
+#endif /* SF32LB52X || SF32LB57X */
+
+#ifndef SF32LB57X
 __HAL_ROM_USED void HAL_PMU_Init(void)
 {
 #ifdef SF32LB56X
@@ -1390,6 +1432,8 @@ __HAL_ROM_USED void HAL_PMU_Init(void)
 #endif /* SF32LB58X */
 }
 
+#endif /* !SF32LB57X */
+
 #if defined(SF32LB52X) && defined(SOC_BF0_HCPU)
 void HAL_PMU_LoadCalData(void)
 {
@@ -1439,7 +1483,10 @@ void HAL_PMU_LoadCalData(void)
         }
     }
 }
+#endif /* SF32LB52X && SOC_BF0_HCPU */
 
+
+#if defined(SF32LB52X) && defined(SOC_BF0_HCPU)
 HAL_RAM_RET_CODE_SECT(HAL_PMU_GetHpsysVoutRef, HAL_StatusTypeDef HAL_PMU_GetHpsysVoutRef(uint8_t *vout_ref))
 {
     HAL_StatusTypeDef ret = HAL_ERROR;
@@ -1465,9 +1512,8 @@ HAL_RAM_RET_CODE_SECT(HAL_PMU_GetHpsysVoutRef2, HAL_StatusTypeDef HAL_PMU_GetHps
 
     return ret;
 }
+#endif /* SF32LB52X && SOC_BF0_HCPU  */
 
-
-#endif /* SF32LB52X && SOC_BF0_HCPU */
 
 #if defined(SF32LB56X) && defined(SOC_BF0_HCPU)
 void HAL_PMU_SaveCalData(FACTORY_CFG_VBK_LDO_T *cfg)
@@ -1518,9 +1564,9 @@ HAL_RAM_RET_CODE_SECT(HAL_PMU_GetHpsysVoutRef, HAL_StatusTypeDef HAL_PMU_ConfigH
 
 #endif /* HAL_PMU_MODULE_ENABLED */
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */

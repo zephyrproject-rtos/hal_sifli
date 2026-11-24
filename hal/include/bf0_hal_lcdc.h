@@ -20,82 +20,142 @@ extern "C" {
 
 
 /** @addtogroup BF0_HAL_Driver
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup LCDC LCD Controller
-  * @brief LCDC HAL module driver
-  * @{
-  */
+ * @brief LCDC HAL module driver
+ * @{
+ */
 
-#define MAX_LCDC_LAYER  1U
-
+/*
+  PTC ramless function
+*/
 #ifdef SOC_BF0_HCPU
 #define HAL_RAMLESS_LCD_ENABLED
+#ifdef SF32LB55X
+#define RAMLESS_AUTO_REFR_CODE_SIZE_IN_WORD 384
+#elif defined(SF32LB57X)
+#define RAMLESS_AUTO_REFR_CODE_SIZE_IN_WORD 256
+#else
+#define RAMLESS_AUTO_REFR_CODE_SIZE_IN_WORD 512
+#endif /* SF32LB55X */
 #endif /* SOC_BF0_HCPU */
 
-#define INVALID_TOTAL_WIDTH 0xFFFF
+/*
+  Line IRQ function
+ */
+#if !(defined(SF32LB55X)&&defined(SOC_BF0_LCPU))
+//Use PTC(ch6~8)+Busmonitor(ch4) to implement line irq function on 55x
+#define LCDC_SUPPORT_LINE_DONE_IRQ
+#endif
 
+/*
+   Layer vertical mirror function
+*/
 #ifndef SF32LB55X
-#define RAMLESS_AUTO_REFR_CODE_SIZE_IN_WORD 512
+#define LCDC_SUPPORT_V_MIRROR
+#endif /* SF32LB55X */
 
-#if defined(SF32LB58X) ||defined(SF32LB56X)
+/*
+   Layer horizontal mirror function
+*/
+#if defined(SF32LB58X) || defined(SF32LB56X)
 #define LCDC_SUPPORT_H_MIRROR
 #endif /* SF32LB58X */
 
-#if defined(SF32LB56X) || defined(SF32LB52X)
+/*
+  QSPI DDR mode
+ */
+#if ! (defined(SF32LB55X) || defined(SF32LB58X))
 #define LCDC_SUPPORT_DDR_QSPI
 #endif
 
 
-#define LCDC_SUPPORT_V_MIRROR
-#define LCDC_SUPPORT_LINE_DONE_IRQ
-#else
-#define RAMLESS_AUTO_REFR_CODE_SIZE_IN_WORD 384
-
-#ifdef SOC_BF0_HCPU
-//Use PTC(ch6~8)+Busmonitor(ch4) to implement line irq function.
-#define LCDC_SUPPORT_LINE_DONE_IRQ
-#endif /* SOC_BF0_HCPU */
-#endif /* SF32LB55X */
-
-#ifndef SF32LB52X
+/*
+  Compressed layer data function
+*/
+#if !(defined(SF32LB52X) || defined(SF32LB57X))
 #ifdef HAL_EXTDMA_MODULE_ENABLED
-#define LCDC_SUPPORTED_COMPRESSED_LAYER
+#define LCDC_SUPPORTED_COMPRESSED_LAYER   //TODO: lcpu因为没有开
+#endif /* HAL_EXTDMA_MODULE_ENABLED */
 #ifdef SF32LB58X
 #define LCDC_SUPPORTED_COMPRESSED_LAYER_MAX_WIDTH 1024
-#else
+#elif defined(SF32LB55X)||defined(SF32LB56X)
 #define LCDC_SUPPORTED_COMPRESSED_LAYER_MAX_WIDTH 512
-#endif /* SF32LB58X */
-#endif /* HAL_EXTDMA_MODULE_ENABLED */
+#else
+#define LCDC_SUPPORTED_COMPRESSED_LAYER_MAX_WIDTH 8192
+#endif
+#endif /* SF32LB52X */
 
+/*
+  DPI interface
+*/
+#ifndef SF32LB52X
 #define LCDC_SUPPORT_DPI
-
-#ifdef SF32LB58X
+/* LCDC_DPI_MAX_WIDTH: max width of dpi interface direct supported*/
+#if defined(SF32LB57X)
+#define LCDC_DPI_MAX_WIDTH 0
+#elif defined(SF32LB58X)
 #define LCDC_DPI_MAX_WIDTH 1024
 #else
 #define LCDC_DPI_MAX_WIDTH 512
 #endif /* SF32LB58X */
-
 #endif /* SF32LB52X */
+
+/*
+  Support indexed 8 bit color format
+*/
+#if !(defined(SF32LB55X) || defined(SF32LB52X))
+#define LCDC_SUPPORT_L8
+#endif
+
+/*
+   TE window function
+*/
+#if !(defined(SF32LB55X) || defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X))
+#define LCDC_SUPPORT_TE_WINDOW
+#endif /* !(defined(SF32LB55X) || defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X)) */
+
+
+/*
+   External line buffer
+*/
+#if !(defined(SF32LB55X) || defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X))
+#define LCDC_SUPPORT_EXTERNAL_LINEBUF
+#endif /* !(defined(SF32LB55X) || defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X)) */
+
+
+/*
+   Electronic paper display interface
+*/
+#if !(defined(SF32LB55X) || defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X))
+#define LCDC_SUPPORT_EPD_INTERFACE
+#endif /* !(defined(SF32LB55X) || defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X)) */
+
+
+
+
 
 // 'v', 'a', 'b' have same origin,
 // and get new 'v' after swap 'a' and 'b'
 #define FLIP_V_BY_AREA(v, a, b) ((a) + (b) - (v))
-
+#define INVALID_TOTAL_WIDTH 0xFFFF
 /* Exported types ------------------------------------------------------------*/
 
 /** @defgroup LCDC_Exported_Types LCDC Exported Types
-  * @brief
-  * @{
-  */
+ * @brief
+ * @{
+ */
 /** @defgroup LCDC_Output_HW_Interface LCDC Output Interface
-  * @{
-  */
+ * @{
+ */
 typedef enum
 {
     LCDC_INTF_DBI_8BIT_A,                   //!< MIPI DBI type A interface(8080 8-bit  Clocked E mode)
     LCDC_INTF_DBI_8BIT_B,                   //!< MIPI DBI type B interface(8080 8-bit)
+    LCDC_INTF_DBI_16BIT_A,
+    LCDC_INTF_DBI_16BIT_B,
     LCDC_INTF_AHB,                   //!< output to AHB buffer (RAM/PSRAM)
 
     LCDC_INTF_SPI_START,
@@ -117,20 +177,22 @@ typedef enum
     LCDC_INTF_DPI_AUX,               //!< DPI interface(Drive by PTC)
     LCDC_INTF_JDI_SERIAL,            //!< JDI serial interface
     LCDC_INTF_JDI_PARALLEL,          //!< JDI parallel interface
+    LCDC_INTF_EPD_8BIT,              //!< EPD 8bit interface
+    LCDC_INTF_EPD_16BIT,             //!< EPD 16bit interface
 
     LCDC_INTF_NUM,
 } HAL_LCDC_IF_TypeDef;
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 
 
 /** @defgroup LCDC_Color_Mode LCDC Pixel format
-  * @{
-  */
+ * @{
+ */
 typedef enum
 {
     LCDC_PIXEL_FORMAT_MONO = 0,
@@ -144,17 +206,21 @@ typedef enum
     LCDC_PIXEL_FORMAT_A4,
     LCDC_PIXEL_FORMAT_A8,
     LCDC_PIXEL_FORMAT_L8,
-    LCDC_PIXEL_FORMAT_RGB565_SWAP, /*Swap byte: Byte0{R[4:0]G[5:3]}, Byte1{G[2:0]B[4:0]}*/
+    LCDC_PIXEL_FORMAT_RGB565_SWAP, /* Byte0{R[4:0]G[5:3]}, Byte1{G[2:0]B[4:0]}, only for layer format*/
+    LCDC_PIXEL_FORMAT_BGR565_SWAP, /* Byte0{B[4:0]G[5:3]}, Byte1{G[2:0]R[4:0]}, only for LCDC output format*/
+    LCDC_PIXEL_FORMAT_F2,
+    LCDC_PIXEL_FORMAT_F2_SWAP,   /*Swap pixel order in each byte*/
 } HAL_LCDC_PixelFormat;
 /**
-  * @}
-  */
+ * @}
+ */
 
 typedef enum
 {
     HAL_LCDC_SYNC_DISABLE             = 0x00U,    /*!< disable frame synchronization */
     HAL_LCDC_SYNC_VER                 = 0x01U,    /*!< only vsync signal mode, pulse trigger default    */
     HAL_LCDC_SYNC_VERHOR              = 0x02U,    /*!< vsync mixed hsync signal mode, edge trigger default  */
+    HAL_LCDC_SYNC_VER_WINDOW          = 0x03U,    /*!< vsync window mode, pulse trigger default  */
 } HAL_LCDC_SyncTypeDef;
 
 
@@ -172,8 +238,10 @@ typedef struct
 
     HAL_LCDC_SyncTypeDef syn_mode;   /*!< vsyn only | vsyn + hsyn mixed | disable */
     uint32_t vsyn_polarity;          /*!< TE pin polarity: 0 - high active and 1 - low active*/
-    uint32_t vsyn_delay_us;          /*!< The delay us to send frame buffer right after received TE signal*/
+    uint32_t vsyn_delay_us;          /*!< The delay us to send frame buffer right after received TE signal, except vsyn window mode*/
     uint32_t hsyn_num;               /*!< Hsync signal num between two vsync signal */
+    int32_t  vsyn_window_start_us;  /*!< The start offset time to vsync trigger signal of vsync window mode*/
+    int32_t  vsyn_window_end_us;    /*!< The end offset time to vsync trigger signal of vsync window mode*/
 } DBI_LCD_CFG;
 
 
@@ -195,8 +263,10 @@ typedef struct
     uint32_t clk_phase:      1;      /*!< CLK pin phase(CPHA):    0 - phase 0 and 1 - phase 1*/
     uint32_t vsyn_polarity:  1;      /*!< TE pin polarity: 0 - falling edge  and 1 - rasing edge*/
     uint32_t reserved:      28;
-    uint32_t vsyn_delay_us;          /*!< The delay us to send frame buffer right after received TE signal*/
+    uint32_t vsyn_delay_us;          /*!< The delay us to send frame buffer right after received TE signal, except vsync window mode*/
     uint32_t hsyn_num;               /*!< Hsync signal num between two vsync signal */
+    int32_t  vsyn_window_start_us;  /*!< The start offset time to vsync trigger signal of vsync window mode*/
+    int32_t  vsyn_window_end_us;    /*!< The end offset time to vsync trigger signal of vsync window mode */
 
     uint32_t bytes_gap_us;           /*!< Set 0 by default. The minimal gap between every byte, but not for multi pixel writting.*/
     uint32_t readback_from_Dx;       /*!< 0 read back data from D0 (HW SPI support), 1~3 read back from D1~D3(Software SPI support before 52x).*/
@@ -271,7 +341,16 @@ typedef struct
     uint8_t  hst_pol_invert : 1;  /*HST polarity invert, default is high active*/
     uint8_t  vck_pol_invert : 1;  /*VCK polarity invert, default is high active*/
     uint8_t  vst_pol_invert : 1;  /*VST polarity invert, default is high active*/
-    uint8_t reserved : 3;       /*Reserved bits*/
+    uint8_t  reserved : 3;       /*Reserved bits*/
+
+    /*Enable customer timing and ignore internal default timing:
+       VST_dly_us = 35us, VST_width_0p1us = 'Same as VCK width', VCK_dly_0p1us = 'Half of VCK width'.
+    */
+    uint8_t  customer_timing_en;
+    /*The following parameters are valid when customer_timing_en is 1*/
+    uint16_t VST_dly_us;   /*The delay from XRST rising edge to VST rising edge, in us unit*/
+    uint16_t VST_width_0p1us; /*VST pulse width, in 0.1us unit*/
+    uint16_t VCK_dly_0p1us;   /*The delay from VST rising edge to VCK rising edge, in 0.1us unit*/
 } JDI_LCD_CFG;
 
 
@@ -298,10 +377,32 @@ typedef struct
 } DPI_LCD_CFG;
 
 
+typedef struct
+{
+    uint32_t SDMODE : 8; //Source driver mode
+    uint32_t SDCLK_polarity : 1; //Source driver clock polarity
+    uint32_t GDSP_polarity : 1; //Gate signal polarity
+    uint32_t GDCLK_polarity : 1; //Gate clock polarity
+    uint32_t reserved : 21;
+
+    uint16_t LSL; //Line start length
+    uint16_t LBL; //Line begin length
+    uint16_t LDL; //Line data length
+    uint16_t LEL; //Line end length
+
+    uint16_t GSTA; //Gate STA length
+
+
+    uint16_t FSL; //Frame sync length
+    uint16_t FBL; //Frame begin length
+    uint16_t FDL; //Frame data length
+    uint16_t FEL; //Frame end length
+} EPD_LCD_CFG;
+
 /** @defgroup LCD_init_config_param LCD init configuration data struct
-  * @brief LCD Init structure definition
-  * @{
-  */
+ * @brief LCD Init structure definition
+ * @{
+ */
 typedef struct
 {
     HAL_LCDC_IF_TypeDef lcd_itf;     /*!< LCD HW connection interface .*/
@@ -318,16 +419,17 @@ typedef struct
 #endif /* HAL_DSI_MODULE_ENABLED */
         JDI_LCD_CFG jdi;             /*!< JDI LCD interface config  */
         DPI_LCD_CFG dpi;             /*!< DPI LCD interface config  */
+        EPD_LCD_CFG epd;             /*!< EPD LCD interface config  */
     } cfg;                           /*!< LCD interface config union*/
 } LCDC_InitTypeDef;
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 /**
-  * @brief LCDC color structure definition
-  */
+ * @brief LCDC color structure definition
+ */
 typedef struct
 {
     uint8_t r;
@@ -336,8 +438,8 @@ typedef struct
 } LCDC_ColorDef;
 
 /**
-  * @brief LCDC alpha color structure definition
-  */
+ * @brief LCDC alpha color structure definition
+ */
 typedef struct
 {
     uint8_t a;
@@ -348,8 +450,8 @@ typedef struct
 
 
 /**
-  * @brief LCDC area structure definition
-  */
+ * @brief LCDC area structure definition
+ */
 typedef struct
 {
     uint16_t x0;
@@ -359,8 +461,8 @@ typedef struct
 } LCDC_AreaDef;
 
 /**
-  * @brief LCDC Layer structure definition
-  */
+ * @brief LCDC Layer structure definition
+ */
 typedef struct
 {
     uint8_t *data;                      //!< Layer buffer ptr
@@ -386,8 +488,8 @@ typedef struct
 } LCDC_LayerCfgTypeDef;
 
 /**
-  * @brief  HAL LCDC State structures definition
-  */
+ * @brief  HAL LCDC State structures definition
+ */
 typedef enum
 {
     HAL_LCDC_STATE_RESET             = 0x00U,    /*!< LCDC not yet initialized or disabled       */
@@ -477,7 +579,15 @@ typedef struct __LCDC_HandleTypeDef
     uint8_t *sram_buf0;
     uint8_t *sram_buf1;
     uint32_t sram_buf_bytes;
+#ifdef DMA_SUPPORT_DYN_CHANNEL_ALLOC
+    DMA_HandleTypeDef hdma_handle;
+#endif /* DMA_SUPPORT_DYN_CHANNEL_ALLOC */
 #endif /* HAL_RAMLESS_LCD_ENABLED */
+
+#ifdef LCDC_SUPPORT_EXTERNAL_LINEBUF
+    uint32_t *sram_line_buf0;
+    uint32_t *sram_line_buf1;
+#endif /* LCDC_SUPPORT_EXTERNAL_LINEBUF */
 
     LCDC_AreaDef roi;                   //!< Clip area position (Origin is LCD top-left, same as below)
     LCDC_ColorDef bg;                   //!< LCDC default background color
@@ -491,7 +601,11 @@ typedef struct __LCDC_HandleTypeDef
     uint8_t                     Next_Frame_TE;           /*!< The TE configuration of Next Frame*/
 
     uint32_t  use_lcdc2_te : 1;                         /*!< Use LCDC2 'TE in LCDC1*/
-    uint32_t  reversed     : 31;
+    uint32_t  update_te_win_reg : 1;                    /*!< Need to update TE window mode register when TE_MAX_CNT is ready*/
+    uint32_t  te_cfg_en : 1;                            /*!< Default TE config*/
+    uint32_t  reversed     : 29;
+
+    uint32_t  update_te_win_reg_value;      /*!< The parameter of update te window*/
 
     uint32_t  debug_cnt0;
     uint32_t  debug_cnt1;
@@ -500,29 +614,29 @@ typedef struct __LCDC_HandleTypeDef
 } LCDC_HandleTypeDef;
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /* Exported constants --------------------------------------------------------*/
 /** @defgroup LCDC_Exported_Constants LCDC Exported Constants
-  * @{
-  */
+ * @{
+ */
 
 
 /** @defgroup LCDC_Rest_Pulse_Type LCDC Reset Pulse Type
-  * @brief Keep RESTB pin in NEG/POS level for a period of time
-  * @{
-  */
+ * @brief Keep RESTB pin in NEG/POS level for a period of time
+ * @{
+ */
 #define LCDC_RESX_NEG_PULSE  0
 #define LCDC_RESX_POS_PULSE  1
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 /** @defgroup LCDC_Error_Code LCDC Error Code
-  * @{
-  */
+ * @{
+ */
 #define HAL_LCDC_ERROR_NONE                 0x00000000U    /*!< No error                                */
 #define HAL_LCDC_ERROR_TIMEOUT              0x00000001U    /*!< Wait busy timeout error                 */
 #define HAL_LCDC_ERROR_OVERFLOW             0x00000002U    /*!< Decompress buf overflow error           */
@@ -530,24 +644,26 @@ typedef struct __LCDC_HandleTypeDef
 #define HAL_LCDC_ERROR_HAL_LOCKED           0x80000000U    /*!< HAL LCDC locked error                   */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 /**
-  * @} LCDC_Exported_Constants
-  */
+ * @} LCDC_Exported_Constants
+ */
 
 
 /* Exported macros -----------------------------------------------------------*/
 /** @defgroup LCDC_Exported_Macros LCDC Exported Macros
-  * @brief
-  * @{
-  */
+ * @brief
+ * @{
+ */
 
 #define HAL_LCDC_IS_SPI_IF(lcd_itf) (((lcd_itf) >= LCDC_INTF_SPI_START) && ((lcd_itf) <= LCDC_INTF_SPI_END))
 #define HAL_LCDC_IS_AHB_IF(lcd_itf) ((lcd_itf) == LCDC_INTF_AHB)
-#define HAL_LCDC_IS_DBI_IF(lcd_itf) (((lcd_itf) == LCDC_INTF_DBI_8BIT_A) || ((lcd_itf) == LCDC_INTF_DBI_8BIT_B))
+#define HAL_LCDC_IS_DBI_8BIT_IF(lcd_itf) (((lcd_itf) == LCDC_INTF_DBI_8BIT_A) || ((lcd_itf) == LCDC_INTF_DBI_8BIT_B))
+#define HAL_LCDC_IS_DBI_16BIT_IF(lcd_itf) (((lcd_itf) == LCDC_INTF_DBI_16BIT_A) || ((lcd_itf) == LCDC_INTF_DBI_16BIT_B))
+#define HAL_LCDC_IS_DBI_IF(lcd_itf) (HAL_LCDC_IS_DBI_8BIT_IF(lcd_itf) || HAL_LCDC_IS_DBI_16BIT_IF(lcd_itf))
 #define HAL_LCDC_IS_DSI_IF(lcd_itf) (((lcd_itf) == LCDC_INTF_DSI) || ((lcd_itf) == LCDC_INTF_DSI_VIDEO))
 #define HAL_LCDC_IS_DSI_CMD_IF(lcd_itf) ((lcd_itf) == LCDC_INTF_DSI)
 #define HAL_LCDC_IS_DSI_VID_IF(lcd_itf) ((lcd_itf) == LCDC_INTF_DSI_VIDEO)
@@ -556,42 +672,44 @@ typedef struct __LCDC_HandleTypeDef
 #define HAL_LCDC_IS_JDI_PARALLEL_IF(lcd_itf) ((lcd_itf) == LCDC_INTF_JDI_PARALLEL)
 #define HAL_LCDC_IS_JDI_SERIAL_IF(lcd_itf) ((lcd_itf) == LCDC_INTF_JDI_SERIAL)
 #define HAL_LCDC_IS_PTC_AUX_IF(lcd_itf)  (((lcd_itf) == LCDC_INTF_DPI_AUX) || ((lcd_itf) == LCDC_INTF_SPI_DCX_4DATA_AUX))
+#define HAL_LCDC_IS_EPD_IF(lcd_itf)   (((lcd_itf) == LCDC_INTF_EPD_8BIT) || ((lcd_itf) == LCDC_INTF_EPD_16BIT))
+
 
 #define HAL_LCDC_LOOKUP_TABLE_SIZE          (256*4)
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 /* Exported functions --------------------------------------------------------*/
 /** @defgroup LCDC_Exported_Functions LCDC Exported Functions
-  * @brief
-  * @{
-  */
+ * @brief
+ * @{
+ */
 
 /**
-* @brief  Initialize LCD controller hardware
-* @param  lcdc LCD controller handle
-* @retval HAL status
-*/
+ * @brief  Initialize LCD controller hardware
+ * @param  lcdc LCD controller handle
+ * @retval HAL status
+ */
 HAL_StatusTypeDef HAL_LCDC_Init(LCDC_HandleTypeDef *lcdc);
 
 /**
-* @brief  De-Initialize LCD controller hardware
-* @param  lcdc LCD controller handle
-* @retval HAL status
-*/
+ * @brief  De-Initialize LCD controller hardware
+ * @param  lcdc LCD controller handle
+ * @retval HAL status
+ */
 HAL_StatusTypeDef HAL_LCDC_DeInit(LCDC_HandleTypeDef *lcdc);
 
 //Obsolete
 HAL_StatusTypeDef HAL_LCDC_ResetLCD(LCDC_HandleTypeDef *lcdc, uint8_t pulse_type, uint32_t pulse_us);
 
 /**
-* @brief  Reset LCD controller hardware
-* @param  lcdc LCD controller handle
-* @retval HAL status
-*/
+ * @brief  Reset LCD controller hardware
+ * @param  lcdc LCD controller handle
+ * @retval HAL status
+ */
 HAL_StatusTypeDef HAL_LCDC_Reset(LCDC_HandleTypeDef *lcdc);
 
 /**
@@ -819,17 +937,17 @@ HAL_StatusTypeDef HAL_LCDC_LayerDisable(LCDC_HandleTypeDef *lcdc,    HAL_LCDC_La
 HAL_StatusTypeDef HAL_LCDC_SetBgColor(LCDC_HandleTypeDef *lcdc, uint8_t r, uint8_t g, uint8_t b);
 
 /**
-* @brief  LCD controller interrupt handler
-* @param  lcdc LCD controller handle
-* @retval None
-*/
+ * @brief  LCD controller interrupt handler
+ * @param  lcdc LCD controller handle
+ * @retval None
+ */
 void HAL_LCDC_IRQHandler(LCDC_HandleTypeDef *lcdc);
 
 /**
-* @brief  Send layer data when TE comming
-* @param  lcdc LCD controller handle
-* @retval None
-*/
+ * @brief  Send layer data when TE comming
+ * @param  lcdc LCD controller handle
+ * @retval None
+ */
 void HAL_LCDC_TE_IRQHandler(LCDC_HandleTypeDef *lcdc);
 
 /**
@@ -954,34 +1072,42 @@ HAL_StatusTypeDef HAL_LCDC_SendLayerData2Reg_IT(LCDC_HandleTypeDef *lcdc, uint32
 HAL_StatusTypeDef HAL_LCDC_SendLayerData2Reg(LCDC_HandleTypeDef *lcdc, uint32_t addr, uint32_t addr_len);
 
 /**
-* @brief  LCD controller send layer data complete callback.
-* @param  lcdc LCD controller handle
-* @retval None
-*/
+ * @brief  LCD controller send layer data complete callback.
+ * @param  lcdc LCD controller handle
+ * @retval None
+ */
 void HAL_LCDC_SendLayerDataCpltCbk(LCDC_HandleTypeDef *lcdc);
 
 /**
-* @brief  LCD controller sent lines(Base on HAL_LCDC_SetROIArea's y0) complete callback.
-* @param  lcdc LCD controller handle
-* @param  line Sent lines
-* @retval None
-*/
+ * @brief  LCD controller sent lines(Base on HAL_LCDC_SetROIArea's y0) complete callback.
+ * @param  lcdc LCD controller handle
+ * @param  line Sent lines
+ * @retval None
+ */
 void HAL_LCDC_SendLineCpltCbk(LCDC_HandleTypeDef *lcdc, uint32_t line);
 
 /**
-* @brief  Setup next frame's TE, auto restore to default TE after send framebuffer
-* @param  lcdc LCD controller handle
-* @param  en  enable TE if ture
-* @retval None
-*/
+ * @brief  Setup next frame's TE, auto restore to default TE after send framebuffer
+ * @param  lcdc LCD controller handle
+ * @param  en  enable TE if ture
+ * @retval None
+ */
 void HAL_LCDC_Next_Frame_TE(LCDC_HandleTypeDef *lcdc, bool en);
 /**
-* @brief  Enable/Disable TE
-* @param  lcdc LCD controller handle
-* @param  en  enable TE if ture
-* @retval None
-*/
+ * @brief  Enable/Disable TE
+ * @param  lcdc LCD controller handle
+ * @param  en  enable TE if ture
+ * @retval None
+ */
 void HAL_LCDC_Enable_TE(LCDC_HandleTypeDef *lcdc, bool en);
+
+/**
+ * @brief Update TE active window area.
+ * @param lcdc - lcdc LCD controller handle
+ * @param start_us - offset to TE trigger edge/pulse
+ * @param end_us -
+ */
+void HAL_LCDC_Update_TE_Window(LCDC_HandleTypeDef *lcdc, int32_t start_us, int32_t end_us);
 
 /**
  * @brief Let LCDC enter low power mode
@@ -1006,10 +1132,10 @@ HAL_StatusTypeDef HAL_LCDC_Resume(LCDC_HandleTypeDef *lcdc);
 
 #if !(defined(SF32LB55X) || defined(SOC_BF0_LCPU))
 /**
-* @brief  Use LCDC2' TE signal on LCDC1
-* @param  lcdc LCD controller handle
-* @retval None
-*/
+ * @brief  Use LCDC2' TE signal on LCDC1
+ * @param  lcdc LCD controller handle
+ * @retval None
+ */
 void HAL_LCDC_UseLCDC2TE(LCDC_HandleTypeDef *lcdc);
 #endif
 
@@ -1093,16 +1219,16 @@ void HAL_LCDC_SoftSpiSetPin(SOFT_SPI_PIN_Def pin, uint32_t high1low0);
 uint32_t HAL_LCDC_SoftSPI_Read(LCDC_HandleTypeDef *lcdc, uint32_t addr, uint32_t addr_len, uint32_t data_len);
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 #ifdef __cplusplus

@@ -180,10 +180,21 @@ __weak int bf0_enable_pll(uint32_t freq, uint8_t type)// need updata drv_audcode
         hwp_audcodec->PLL_CFG0 |= AUDCODEC_PLL_CFG0_EN_VCO;
         hwp_audcodec->PLL_CFG0 |= AUDCODEC_PLL_CFG0_EN_ANA;
         hwp_audcodec->PLL_CFG0 &= ~AUDCODEC_PLL_CFG0_ICP_SEL_Msk;
+#ifdef SF32LB52X
         hwp_audcodec->PLL_CFG0 |= (8 << AUDCODEC_PLL_CFG0_ICP_SEL_Pos);
+#elif defined(SF32LB57X)
+        hwp_audcodec->PLL_CFG0 |= (3 << AUDCODEC_PLL_CFG0_ICP_SEL_Pos);
+#else
+#error "todo"
+#endif
         hwp_audcodec->PLL_CFG2 |= AUDCODEC_PLL_CFG2_EN_DIG;
         hwp_audcodec->PLL_CFG3 |= AUDCODEC_PLL_CFG3_EN_SDM;
-        hwp_audcodec->PLL_CFG4 |= AUDCODEC_PLL_CFG4_EN_CLK_DIG;
+        hwp_audcodec->PLL_CFG4 |= AUDCODEC_PLL_CFG4_EN_CLK_DIG
+#ifdef AUDCODEC_PLL_CFG4_DIVB_CLK_DIG_Pos
+                                  | (2 << AUDCODEC_PLL_CFG4_DIVB_CLK_DIG_Pos)
+#endif
+                                  ;
+
         hwp_audcodec->PLL_CFG1 = (3 << AUDCODEC_PLL_CFG1_R3_SEL_Pos) |
                                  (1 << AUDCODEC_PLL_CFG1_RZ_SEL_Pos) |
                                  (3 << AUDCODEC_PLL_CFG1_C2_SEL_Pos) |
@@ -353,52 +364,31 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_Analog_DACPath(AUDCODE_DAC_
     }
 
     // dac1 and dac2 power
-#ifdef SF32LB58X
-    hwp_audcodec->DAC1_CFG |= AUDCODEC_DAC1_CFG_LP_MODE;
-    hwp_audcodec->DAC2_CFG |= AUDCODEC_DAC2_CFG_LP_MODE;
-#else
 #if AVDD_V18_ENABLE
     hwp_audcodec->DAC1_CFG |= AUDCODEC_DAC1_CFG_LP_MODE;  //1.8v
 #else
     hwp_audcodec->DAC1_CFG &= ~AUDCODEC_DAC1_CFG_LP_MODE; //3.3v
 #endif
-#endif
+
     hwp_audcodec->DAC1_CFG &= ~AUDCODEC_DAC1_CFG_EN_OS_DAC;
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_OS_DAC;
     hwp_audcodec->DAC1_CFG |= AUDCODEC_DAC1_CFG_EN_VCM;
-#ifdef BSP_ENABLE_DAC2
-    hwp_audcodec->DAC2_CFG |= AUDCODEC_DAC2_CFG_EN_VCM;
-#else
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_VCM;
-#endif
+
     // wait 5us
     //wait(250);
     HAL_Delay_us(5);
     hwp_audcodec->DAC1_CFG |= AUDCODEC_DAC1_CFG_EN_AMP;
-#ifdef BSP_ENABLE_DAC2
-    hwp_audcodec->DAC2_CFG |= AUDCODEC_DAC2_CFG_EN_AMP;
-#else
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_AMP;
-#endif
     // wait 1us
     //wait(50);
     HAL_Delay_us(1);
     hwp_audcodec->DAC1_CFG |= AUDCODEC_DAC1_CFG_EN_OS_DAC;
-    hwp_audcodec->DAC2_CFG |= AUDCODEC_DAC2_CFG_EN_OS_DAC;
     // wait 10us
     //wait(500);
     HAL_Delay_us(10);
     hwp_audcodec->DAC1_CFG |= AUDCODEC_DAC1_CFG_EN_DAC;
-#ifdef BSP_ENABLE_DAC2
-    hwp_audcodec->DAC2_CFG |= AUDCODEC_DAC2_CFG_EN_DAC;
-#else
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_DAC;
-#endif
     // wait 10us
     //wait(500);
     HAL_Delay_us(10);
     hwp_audcodec->DAC1_CFG &= ~AUDCODEC_DAC1_CFG_SR;
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_SR;
     pll_cfg2_reset |= (1 << HAL_AUDCODEC_DAC_CH0);
     return HAL_OK;
 }
@@ -466,10 +456,21 @@ void HAL_TURN_ON_PLL()
     hwp_audcodec->PLL_CFG0 |= AUDCODEC_PLL_CFG0_EN_VCO;
     hwp_audcodec->PLL_CFG0 |= AUDCODEC_PLL_CFG0_EN_ANA;
     hwp_audcodec->PLL_CFG0 &= ~AUDCODEC_PLL_CFG0_ICP_SEL_Msk;
+#ifdef SF32LB52X
     hwp_audcodec->PLL_CFG0 |= (8 << AUDCODEC_PLL_CFG0_ICP_SEL_Pos);
+#elif defined(SF32LB57X)
+    hwp_audcodec->PLL_CFG0 |= (3 << AUDCODEC_PLL_CFG0_ICP_SEL_Pos);
+#else
+#error "todo"
+#endif
     hwp_audcodec->PLL_CFG2 |= AUDCODEC_PLL_CFG2_EN_DIG;
     hwp_audcodec->PLL_CFG3 |= AUDCODEC_PLL_CFG3_EN_SDM;
-    hwp_audcodec->PLL_CFG4 |= AUDCODEC_PLL_CFG4_EN_CLK_DIG;
+    hwp_audcodec->PLL_CFG4 |= AUDCODEC_PLL_CFG4_EN_CLK_DIG
+#ifdef AUDCODEC_PLL_CFG4_DIVB_CLK_DIG_Pos
+                              | (2 << AUDCODEC_PLL_CFG4_DIVB_CLK_DIG_Pos)
+#endif
+                              ;
+
     hwp_audcodec->PLL_CFG1 = (3 << AUDCODEC_PLL_CFG1_R3_SEL_Pos) |
                              (1 << AUDCODEC_PLL_CFG1_RZ_SEL_Pos) |
                              (3 << AUDCODEC_PLL_CFG1_C2_SEL_Pos) |
@@ -487,24 +488,19 @@ void HAL_TURN_ON_PLL()
 __HAL_ROM_USED void HAL_AUDCODEC_Close_Analog_DACPath(void)
 {
     hwp_audcodec->DAC1_CFG |= AUDCODEC_DAC1_CFG_SR;
-    hwp_audcodec->DAC2_CFG |= AUDCODEC_DAC2_CFG_SR;
     // wait 10us
     //wait(500);
     HAL_Delay_us(10);
     hwp_audcodec->DAC1_CFG &= ~AUDCODEC_DAC1_CFG_EN_DAC;
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_DAC;
     // wait 10us
     //wait(500);
     HAL_Delay_us(10);
     hwp_audcodec->DAC1_CFG &= ~AUDCODEC_DAC1_CFG_EN_VCM;
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_VCM;
     // wait 10us
     //wait(500);
     HAL_Delay_us(10);
     hwp_audcodec->DAC1_CFG &= ~AUDCODEC_DAC1_CFG_EN_AMP;
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_AMP;
     hwp_audcodec->DAC1_CFG &= ~AUDCODEC_DAC1_CFG_EN_OS_DAC;
-    hwp_audcodec->DAC2_CFG &= ~AUDCODEC_DAC2_CFG_EN_OS_DAC;
     HAL_DBG_printf("close Aanlog DACPath\n");
 
 }
@@ -543,9 +539,14 @@ __HAL_ROM_USED void HAL_AUDCODEC_Config_Analog_ADCPath(AUDCODE_ADC_CLK_CONFIG_TY
 {
     HAL_DBG_printf("config Aanlog ADCPath\n");
     // turn on lp adc1 and adc2 analog
+#ifdef AUDCODEC_ADC_ANA_CFG_PSW_EN
+    hwp_audcodec->ADC_ANA_CFG |= AUDCODEC_ADC_ANA_CFG_PSW_EN;
+#endif
     hwp_audcodec->BG_CFG0 &= ~AUDCODEC_BG_CFG0_EN_SMPL;
     hwp_audcodec->ADC_ANA_CFG |= AUDCODEC_ADC_ANA_CFG_MICBIAS_EN;
+#if !defined(SF32LB57X)
     hwp_audcodec->ADC_ANA_CFG &= ~AUDCODEC_ADC_ANA_CFG_MICBIAS_CHOP_EN;
+#endif
     HAL_Delay(2);   //2ms
 #if 1
     hwp_audcodec->BG_CFG0 &= ~AUDCODEC_BG_CFG0_EN_SMPL; //noise pop
@@ -576,9 +577,14 @@ __HAL_ROM_USED void HAL_AUDCODEC_Config_Analog_ADCPath(AUDCODE_ADC_CLK_CONFIG_TY
         hwp_audcodec->PLL_CFG2  |= AUDCODEC_PLL_CFG2_RSTB;
     }
 
+#ifdef ADC1_DIFFERENTIAL_INPUT
+    hwp_audcodec->ADC1_CFG1 |= AUDCODEC_ADC1_CFG1_DIFF_EN;
+#else
     hwp_audcodec->ADC1_CFG1 &= ~AUDCODEC_ADC1_CFG1_DIFF_EN;
-    //hwp_audcodec->ADC1_CFG1 |= AUDCODEC_ADC1_CFG1_DIFF_EN;
+#endif
+#if !defined(SF32LB57X)
     hwp_audcodec->ADC1_CFG1 &= ~AUDCODEC_ADC1_CFG1_DACN_EN;
+#endif
 
     hwp_audcodec->ADC1_CFG1 &= ~AUDCODEC_ADC1_CFG1_FSP;
     hwp_audcodec->ADC1_CFG1 |= (cfg->fsp << AUDCODEC_ADC1_CFG1_FSP_Pos);
@@ -593,9 +599,12 @@ __HAL_ROM_USED void HAL_AUDCODEC_Config_Analog_ADCPath(AUDCODE_ADC_CLK_CONFIG_TY
     hwp_audcodec->ADC1_CFG2 |= AUDCODEC_ADC1_CFG2_EN;
     hwp_audcodec->ADC1_CFG2 &= ~AUDCODEC_ADC1_CFG2_RSTB;
 
+#if !defined(SF32LB57X)
     hwp_audcodec->ADC1_CFG1 &= ~AUDCODEC_ADC1_CFG1_VREF_SEL;
     hwp_audcodec->ADC1_CFG1 |= (2  << AUDCODEC_ADC1_CFG1_VREF_SEL_Pos) ;
+#endif
 
+#if !defined(SF32LB57X)
     hwp_audcodec->ADC2_CFG1 &= ~AUDCODEC_ADC2_CFG1_FSP;
     hwp_audcodec->ADC2_CFG1 |= (cfg->fsp << AUDCODEC_ADC2_CFG1_FSP_Pos);
 
@@ -610,6 +619,7 @@ __HAL_ROM_USED void HAL_AUDCODEC_Config_Analog_ADCPath(AUDCODE_ADC_CLK_CONFIG_TY
 
     hwp_audcodec->ADC2_CFG2 &= ~AUDCODEC_ADC2_CFG1_VREF_SEL;
     hwp_audcodec->ADC2_CFG2 |= (2  << AUDCODEC_ADC2_CFG1_VREF_SEL_Pos) ;
+#endif
     // wait 20ms
     HAL_Delay(20);
     //hwp_audcodec->BG_CFG0  |= AUDCODEC_BG_CFG0_EN_SMPL;
@@ -629,18 +639,21 @@ __HAL_ROM_USED void HAL_AUDCODEC_Close_Analog_ADCPath(void)
     hwp_audcodec->ADC1_CFG2 &= ~AUDCODEC_ADC1_CFG2_EN;
     hwp_audcodec->ADC2_CFG2 &= ~AUDCODEC_ADC2_CFG2_EN;
     hwp_audcodec->ADC_ANA_CFG &= ~AUDCODEC_ADC_ANA_CFG_MICBIAS_EN;
+#ifdef AUDCODEC_ADC_ANA_CFG_PSW_EN
+    hwp_audcodec->ADC_ANA_CFG &= ~AUDCODEC_ADC_ANA_CFG_PSW_EN;
+#endif
     HAL_DBG_printf("close Aanlog ADCPath\n");
 
 }
 
 
 /**
-  * @brief Initializes the AUDCODEC according to the specified parameters
-  *         in the AUDCODEC_InitTypeDef and create the associated handle.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @retval HAL status
-  */
+ * @brief Initializes the AUDCODEC according to the specified parameters
+ *         in the AUDCODEC_InitTypeDef and create the associated handle.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Init(AUDCODEC_HandleTypeDef *hacodec)
 {
     int i = 0;
@@ -699,11 +712,11 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Init(AUDCODEC_HandleTypeDef *hacod
 }
 
 /**
-  * @brief DeInitializes the AUDCODEC peripheral
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @retval HAL status
-  */
+ * @brief DeInitializes the AUDCODEC peripheral
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_DeInit(AUDCODEC_HandleTypeDef *hacodec)
 {
     int i;
@@ -743,11 +756,11 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_DeInit(AUDCODEC_HandleTypeDef *hac
 }
 
 /**
-  * @brief Initializes the AUDCODEC pin setting.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @retval None
-  */
+ * @brief Initializes the AUDCODEC pin setting.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @retval None
+ */
 __HAL_ROM_USED void HAL_AUDCODEC_MspInit(AUDCODEC_HandleTypeDef *hacodec)
 {
     /* Prevent unused argument(s) compilation warning */
@@ -755,11 +768,11 @@ __HAL_ROM_USED void HAL_AUDCODEC_MspInit(AUDCODEC_HandleTypeDef *hacodec)
 }
 
 /**
-  * @brief deunitializes the AUDCODEC pin setting.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @retval None
-  */
+ * @brief deunitializes the AUDCODEC pin setting.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @retval None
+ */
 __HAL_ROM_USED void HAL_AUDCODEC_MspDeInit(AUDCODEC_HandleTypeDef *hacodec)
 {
     /* Prevent unused argument(s) compilation warning */
@@ -767,12 +780,12 @@ __HAL_ROM_USED void HAL_AUDCODEC_MspDeInit(AUDCODEC_HandleTypeDef *hacodec)
 }
 
 /**
-  * @brief Set AUDCODEC transmit channel configures.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @param cfg: configure parameters
-  * @retval HAL status
-  */
+ * @brief Set AUDCODEC transmit channel configures.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @param cfg: configure parameters
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_TChanel(AUDCODEC_HandleTypeDef *hacodec, int channel, AUDCODEC_DACCfgTypeDef *cfg)
 {
     AUDCODE_DAC_CLK_CONFIG_TYPE *dac_clk = cfg->dac_clk;
@@ -814,29 +827,6 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_TChanel(AUDCODEC_HandleType
                                            (0xFF    << AUDCODEC_DAC_CH0_DEBUG_DATA_OUT_Pos);
         //hacodec->Instance->DAC_CH0_DC = MAKE_REG_VAL(cfg->dc_offset, AUDCODEC_DAC_CH0_DC_OFFSET_Msk, AUDCODEC_DAC_CH0_DC_OFFSET_Pos);
         break;
-    case 1:
-        hacodec->Instance->DAC_CH1_CFG = (1    << AUDCODEC_DAC_CH0_CFG_ENABLE_Pos) |
-                                         (0    << AUDCODEC_DAC_CH0_CFG_DOUT_MUTE_Pos) |
-                                         (2    << AUDCODEC_DAC_CH0_CFG_DEM_MODE_Pos) |
-                                         (0    << AUDCODEC_DAC_CH0_CFG_DMA_EN_Pos) |
-                                         (6    << AUDCODEC_DAC_CH0_CFG_ROUGH_VOL_Pos) |
-                                         (0    << AUDCODEC_DAC_CH0_CFG_FINE_VOL_Pos) |
-                                         (1    << AUDCODEC_DAC_CH0_CFG_DATA_FORMAT_Pos) |
-                                         (dac_clk->sinc_gain << AUDCODEC_DAC_CH0_CFG_SINC_GAIN_Pos) |
-                                         (0    << AUDCODEC_DAC_CH0_CFG_DITHER_GAIN_Pos) |
-                                         (0    << AUDCODEC_DAC_CH0_CFG_DITHER_EN_Pos) |
-                                         (0    << AUDCODEC_DAC_CH0_CFG_CLK_ANA_POL_Pos);
-
-        hacodec->Instance->DAC_CH1_CFG_EXT = (1 << AUDCODEC_DAC_CH0_CFG_EXT_RAMP_EN_Pos) |
-                                             (1 << AUDCODEC_DAC_CH0_CFG_EXT_RAMP_MODE_Pos) |
-                                             (1 << AUDCODEC_DAC_CH0_CFG_EXT_ZERO_ADJUST_EN_Pos) |
-                                             (2 << AUDCODEC_DAC_CH0_CFG_EXT_RAMP_INTERVAL_Pos) |
-                                             (0 << AUDCODEC_DAC_CH0_CFG_EXT_RAMP_STAT_Pos);
-
-        hacodec->Instance->DAC_CH1_DEBUG = (0    << AUDCODEC_DAC_CH0_DEBUG_BYPASS_Pos) |
-                                           (0xFF    << AUDCODEC_DAC_CH0_DEBUG_DATA_OUT_Pos);
-        //hacodec->Instance->DAC_CH1_DC = MAKE_REG_VAL(cfg->dc_offset, AUDCODEC_DAC_CH1_DC_OFFSET_Msk, AUDCODEC_DAC_CH1_DC_OFFSET_Pos);
-        break;
     default:
         return HAL_ERROR;
     }
@@ -845,12 +835,12 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_TChanel(AUDCODEC_HandleType
 }
 
 /**
-  * @brief Set AUDCODEC Receive configures.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @param cfg: configure parameters
-  * @retval HAL status
-  */
+ * @brief Set AUDCODEC Receive configures.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @param cfg: configure parameters
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_RChanel(AUDCODEC_HandleTypeDef *hacodec, int channel, AUDCODEC_ADCCfgTypeDef *cfg)
 {
     AUDCODE_ADC_CLK_CONFIG_TYPE *adc_clk = cfg->adc_clk;
@@ -914,7 +904,6 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Clear_All_Channel(AUDCODEC_HandleT
     if (ch_type_bit & 0x1)
     {
         __HAL_AUDCODEC_DAC_CH0_DISABLE(hacodec);
-        __HAL_AUDCODEC_DAC_CH1_DISABLE(hacodec);
         hacodec->Instance->DAC_CFG |= AUDCODEC_DAC_CFG_PATH_RESET;
         hacodec->Instance->DAC_CFG &= ~AUDCODEC_DAC_CFG_PATH_RESET;
         pll_cfg2_reset &= ~(1 << HAL_AUDCODEC_DAC_CH0);
@@ -933,13 +922,13 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Clear_All_Channel(AUDCODEC_HandleT
 }
 
 /**
-  * @brief  Configure DAC path volume.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @param channel: channel 0 or 1
-  * @param volume: configure volume -36dB~54dB, unit is 0.5db, use fix point Q15.1 format
-  * @retval HAL status
-  */
+ * @brief  Configure DAC path volume.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @param channel: channel 0 or 1
+ * @param volume: configure volume -36dB~54dB, unit is 0.5db, use fix point Q15.1 format
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_DACPath_Volume(AUDCODEC_HandleTypeDef *hacodec, int channel, int volume)
 {
     uint32_t rough_vol, fine_vol;
@@ -1002,9 +991,6 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_DACPath_Volume(AUDCODEC_Han
     }
     else
     {
-        MODIFY_REG(hacodec->Instance->DAC_CH1_CFG, AUDCODEC_DAC_CH0_CFG_ROUGH_VOL_Msk | AUDCODEC_DAC_CH0_CFG_FINE_VOL_Msk, \
-                   MAKE_REG_VAL(rough_vol, AUDCODEC_DAC_CH0_CFG_ROUGH_VOL_Msk, AUDCODEC_DAC_CH0_CFG_ROUGH_VOL_Pos) |
-                   MAKE_REG_VAL(fine_vol, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Msk, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Pos));
     }
 
     HAL_DBG_printf("set volume rough:%d, fine:%d, cfg0:0x%x", rough_vol, fine_vol, hacodec->Instance->DAC_CH0_CFG);
@@ -1013,13 +999,13 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_DACPath_Volume(AUDCODEC_Han
 }
 
 /**
-  * @brief  Configure ADC path volume.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @param channel: channel 0 or 1
-  * @param volume: configure volume -36dB~54dB
-  * @retval HAL status
-  */
+ * @brief  Configure ADC path volume.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @param channel: channel 0 or 1
+ * @param volume: configure volume -36dB~54dB
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_ADCPath_Volume(AUDCODEC_HandleTypeDef *hacodec, int channel, int volume)
 {
     uint32_t rough_vol, fine_vol;
@@ -1063,11 +1049,11 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_ADCPath_Volume(AUDCODEC_Han
 
 
 /**
-  * @brief  Config DAC path.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @retval HAL status
-  */
+ * @brief  Config DAC path.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_DACPath(AUDCODEC_HandleTypeDef *hacodec, uint16_t bypass)
 {
     /* Check the AUDCODEC handle allocation */
@@ -1083,12 +1069,6 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_DACPath(AUDCODEC_HandleType
 
         hacodec->Instance->DAC_CH0_DEBUG = (1    << AUDCODEC_DAC_CH0_DEBUG_BYPASS_Pos) |
                                            (0xFF    << AUDCODEC_DAC_CH0_DEBUG_DATA_OUT_Pos);
-
-        MODIFY_REG(hacodec->Instance->DAC_CH1_CFG, AUDCODEC_DAC_CH1_CFG_DOUT_MUTE_Msk, \
-                   MAKE_REG_VAL(1, AUDCODEC_DAC_CH1_CFG_DOUT_MUTE_Msk, AUDCODEC_DAC_CH1_CFG_DOUT_MUTE_Pos));
-
-        hacodec->Instance->DAC_CH1_DEBUG = (1    << AUDCODEC_DAC_CH1_DEBUG_BYPASS_Pos) |
-                                           (0xFF    << AUDCODEC_DAC_CH1_DEBUG_DATA_OUT_Pos);
     }
     else
     {
@@ -1096,25 +1076,21 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_DACPath(AUDCODEC_HandleType
                    MAKE_REG_VAL(0, AUDCODEC_DAC_CH0_CFG_DOUT_MUTE_Msk, AUDCODEC_DAC_CH0_CFG_DOUT_MUTE_Pos));
         hacodec->Instance->DAC_CH0_DEBUG = (0    << AUDCODEC_DAC_CH0_DEBUG_BYPASS_Pos) |
                                            (0xFF    << AUDCODEC_DAC_CH0_DEBUG_DATA_OUT_Pos);
-        MODIFY_REG(hacodec->Instance->DAC_CH1_CFG, AUDCODEC_DAC_CH1_CFG_DOUT_MUTE_Msk, \
-                   MAKE_REG_VAL(0, AUDCODEC_DAC_CH1_CFG_DOUT_MUTE_Msk, AUDCODEC_DAC_CH1_CFG_DOUT_MUTE_Pos));
-        hacodec->Instance->DAC_CH1_DEBUG = (0    << AUDCODEC_DAC_CH1_DEBUG_BYPASS_Pos) |
-                                           (0xFF    << AUDCODEC_DAC_CH1_DEBUG_DATA_OUT_Pos);
     }
 
     return HAL_OK;
 }
 
 /**
-  * @brief  Configure DAC path mute.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @param mute: is mute or not
-  * @retval HAL status
-  */
+ * @brief  Configure DAC path mute.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @param mute: is mute or not
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Mute_DACPath(AUDCODEC_HandleTypeDef *hacodec, int mute)
 {
-    static int fine_vol_0, fine_vol_1;
+    static int fine_vol_0;
 
     /* Check the AUDCODEC handle allocation */
     if (hacodec == NULL)
@@ -1126,19 +1102,14 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Mute_DACPath(AUDCODEC_HandleTypeDe
     {
         HAL_AUDCODEC_Config_DACPath(hacodec, 1);
         fine_vol_0 = GET_REG_VAL(hacodec->Instance->DAC_CH0_CFG, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Msk, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Pos);
-        fine_vol_1 = GET_REG_VAL(hacodec->Instance->DAC_CH1_CFG, AUDCODEC_DAC_CH1_CFG_FINE_VOL_Msk, AUDCODEC_DAC_CH1_CFG_FINE_VOL_Pos);
         MODIFY_REG(hacodec->Instance->DAC_CH0_CFG,  AUDCODEC_DAC_CH0_CFG_FINE_VOL_Msk, \
                    MAKE_REG_VAL(0xF, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Msk, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Pos));
-        MODIFY_REG(hacodec->Instance->DAC_CH1_CFG,  AUDCODEC_DAC_CH1_CFG_FINE_VOL_Msk, \
-                   MAKE_REG_VAL(0xF, AUDCODEC_DAC_CH1_CFG_FINE_VOL_Msk, AUDCODEC_DAC_CH1_CFG_FINE_VOL_Pos));
     }
     else
     {
         HAL_AUDCODEC_Config_DACPath(hacodec, 0);
         MODIFY_REG(hacodec->Instance->DAC_CH0_CFG,  AUDCODEC_DAC_CH0_CFG_FINE_VOL_Msk, \
                    MAKE_REG_VAL(fine_vol_0, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Msk, AUDCODEC_DAC_CH0_CFG_FINE_VOL_Pos));
-        MODIFY_REG(hacodec->Instance->DAC_CH1_CFG,  AUDCODEC_DAC_CH1_CFG_FINE_VOL_Msk, \
-                   MAKE_REG_VAL(fine_vol_1, AUDCODEC_DAC_CH1_CFG_FINE_VOL_Msk, AUDCODEC_DAC_CH1_CFG_FINE_VOL_Pos));
     }
 
 
@@ -1148,12 +1119,12 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Mute_DACPath(AUDCODEC_HandleTypeDe
 #if 0
 
 /**
-  * @brief  Configure ADC path.
-  * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
-  *         the configuration information for AUDCODEC module
-  * @param cfg: configure parameters
-  * @retval HAL status
-  */
+ * @brief  Configure ADC path.
+ * @param  hacodec: pointer to a AUDCODEC_HandleTypeDef structure that contains
+ *         the configuration information for AUDCODEC module
+ * @param cfg: configure parameters
+ * @retval HAL status
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_AUDCODEC_Config_ADCPath(AUDCODEC_HandleTypeDef *hacodec, AUDCODEC_ADCCfgTypeDef *cfg)
 {
     uint32_t value;
@@ -1217,8 +1188,6 @@ HAL_StatusTypeDef HAL_AUDCODEC_Transmit_DMA(AUDCODEC_HandleTypeDef *hacodec, uin
     }
     else
     {
-        txentry = (uint32_t)(&hacodec->Instance->DAC_CH1_ENTRY);
-        dmamask = (uint32_t *)((uint32_t)&hacodec->Instance->DAC_CH1_CFG);
     }
 
     if (!(hacodec->State[did] & HAL_AUDCODEC_STATE_BUSY_TX))
@@ -1347,9 +1316,6 @@ HAL_StatusTypeDef HAL_AUDCODEC_DMAStop(AUDCODEC_HandleTypeDef *hacodec, uint32_t
     case HAL_AUDCODEC_DAC_CH0:
         hacodec->Instance->DAC_CH0_CFG &= (~AUDCODEC_DAC_CH0_CFG_DMA_EN);
         break;
-    case HAL_AUDCODEC_DAC_CH1:
-        hacodec->Instance->DAC_CH1_CFG &= (~AUDCODEC_DAC_CH1_CFG_DMA_EN);
-        break;
     case HAL_AUDCODEC_ADC_CH0:
         hacodec->Instance->ADC_CH0_CFG &= (~AUDCODEC_ADC_CH0_CFG_DMA_EN);
         break;
@@ -1448,11 +1414,11 @@ static void AUDCODEC_DMATxCplt(DMA_HandleTypeDef *hdma)
 }
 
 /**
-  * @brief DMA I2S transmit process half complete callback
-  * @param  hdma: pointer to a DMA_HandleTypeDef structure that contains
-  *                the configuration information for the specified DMA module.
-  * @retval None
-  */
+ * @brief DMA I2S transmit process half complete callback
+ * @param  hdma: pointer to a DMA_HandleTypeDef structure that contains
+ *                the configuration information for the specified DMA module.
+ * @retval None
+ */
 static void AUDCODEC_DMATxHalfCplt(DMA_HandleTypeDef *hdma)
 {
     AUDCODEC_HandleTypeDef *aprc = (AUDCODEC_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;
@@ -1482,11 +1448,11 @@ static void AUDCODEC_DMARxCplt(DMA_HandleTypeDef *hdma)
 }
 
 /**
-  * @brief  DMA PDM half receive process complete callback
-  * @param  hdma pointer to a DMA_HandleTypeDef structure that contains
-  *               the configuration information for the specified DMA module.
-  * @retval None
-  */
+ * @brief  DMA PDM half receive process complete callback
+ * @param  hdma pointer to a DMA_HandleTypeDef structure that contains
+ *               the configuration information for the specified DMA module.
+ * @retval None
+ */
 static void AUDCODEC_DMAHalfRxCplt(DMA_HandleTypeDef *hdma)
 {
     AUDCODEC_HandleTypeDef *aprc = (AUDCODEC_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;
@@ -1501,11 +1467,11 @@ static void AUDCODEC_DMAHalfRxCplt(DMA_HandleTypeDef *hdma)
 
 
 /**
-  * @brief  DMA PDM communication error callback.
-  * @param  hdma pointer to a DMA_HandleTypeDef structure that contains
-  *               the configuration information for the specified DMA module.
-  * @retval None
-  */
+ * @brief  DMA PDM communication error callback.
+ * @param  hdma pointer to a DMA_HandleTypeDef structure that contains
+ *               the configuration information for the specified DMA module.
+ * @retval None
+ */
 static void AUDCODEC_DMAError(DMA_HandleTypeDef *hdma)
 {
     AUDCODEC_HandleTypeDef *aprc = (AUDCODEC_HandleTypeDef *)((DMA_HandleTypeDef *)hdma)->Parent;

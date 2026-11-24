@@ -6,6 +6,7 @@
 
 #include <rtconfig.h>
 #include <bf0_hal.h>
+#include "bf0_lcpu_init.h"
 #include <string.h>
 
 #if defined (APP_BSP_TEST)
@@ -151,7 +152,6 @@ uint8_t lcpu_power_on(void)
 #ifdef USING_SEC_ENV
     // hcpu_exit_safe_mode()
     HAL_SECU_SetAttr(SECU_MOD_HCPU, SECU_ROLE_MASTER, SECU_FLAG_NONE);
-    HAL_SECU_Apply(SECU_GROUP_HPMST);
 #endif
     HAL_Delay_us(5000);
     return 0;

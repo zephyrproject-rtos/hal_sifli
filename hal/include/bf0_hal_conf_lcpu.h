@@ -16,8 +16,8 @@ extern "C" {
 
 /* ########################## Module Selection ############################## */
 /**
-  * @brief This is the list of modules to be used in the HAL driver
-  */
+ * @brief This is the list of modules to be used in the HAL driver
+ */
 #define HAL_AON_MODULE_ENABLED
 #define HAL_CORTEX_MODULE_ENABLED
 #define HAL_DMA_MODULE_ENABLED
@@ -32,44 +32,56 @@ extern "C" {
 #define HAL_MODULE_ENABLED
 #define HAL_PINMUX_MODULE_ENABLED
 #define HAL_PMU_MODULE_ENABLED
+#ifdef PTC2_BASE
 #define HAL_PTC_ENABLED
+#endif /* PTC2_BASE */
 #define HAL_RCC_MODULE_ENABLED
 #define HAL_SPI_MODULE_ENABLED
 #define HAL_UART_MODULE_ENABLED
 #define HAL_WDT_MODULE_ENABLED
 
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
+//TODO: Enable secu module in 57x
+#if !defined(SF32LB57X)
 #define HAL_SECU_MODULE_ENABLED
+#endif /* !SF32LB57X */
+
 #else
 #define HAL_ADC_MODULE_ENABLED
+
 #define HAL_BUSMON_MODULE_ENABLED
+
 #define HAL_I2S_MODULE_ENABLED
 #define HAL_RTC_MODULE_ENABLED
 #define HAL_TSEN_MODULE_ENABLED
-#endif/* SF32LB52X */
+#endif/* SF32LB52X || SF32LB57X*/
 
 #ifdef SF32LB55X
 #define HAL_QSPI_MODULE_ENABLED
 #else
+
+#ifndef SF32LB57X
 #define HAL_CACHE_MODULE_ENABLED
+#endif /* !SF32LB57X */
+
 #define HAL_CRC_MODULE_ENABLED
 #define HAL_MPI_MODULE_ENABLED
 #endif /* SF32LB55X */
 
-#ifndef SF32LB52X
+#if !defined(SF32LB52X) && !defined(SF32LB57X)
 #define HAL_SYSTEM_CONFIG_ENABLED
-#endif
+#endif /* !SF32LB52X && !SF32LB57X */
 
 #ifdef SF32LB58X
 #define HAL_FACC_MODULE_ENABLED
 #define HAL_FFT_MODULE_ENABLED
 #define HAL_NNACC_MODULE_ENABLED
-#endif
+#endif /* SF32LB58X */
 
 #if defined(SF32LB55X) || defined(SF32LB58X)
 #define HAL_LCD_MODULE_ENABLED
 #define HAL_SDADC_MODULE_ENABLED
-#endif
+#endif /* SF32LB55X || SF32LB58X */
 
 
 #if defined(SF32LB56X) || defined(SF32LB58X)
@@ -77,46 +89,46 @@ extern "C" {
 #if defined(__CC_ARM) || defined(__CLANG_ARM) || (defined(__GNUC__) && (__GNUC__ > 9))
 #define HAL_MATH_MODULE_ENABLED
 #endif /* defined(__CC_ARM) || defined(__CLANG_ARM) || (defined(__GNUC__) && (__GNUC__ > 9)) */
-#endif
+#endif /* SF32LB56X || SF32LB58X */
 
 /* ########################## HSE/HSI Values adaptation ##################### */
 /**
-  * @brief Adjust the value of External High Speed oscillator (HSE) used in your application.
-  *        This value is used by the RCC HAL module to compute the system frequency
-  *        (when HSE is used as system clock source, directly or through the PLL).
-  */
+ * @brief Adjust the value of External High Speed oscillator (HSE) used in your application.
+ *        This value is used by the RCC HAL module to compute the system frequency
+ *        (when HSE is used as system clock source, directly or through the PLL).
+ */
 #if !defined  (HSE_VALUE)
 #define HSE_VALUE    ((uint32_t)8000000) /*!< Value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
 
 /**
-  * @brief In the following line adjust the External High Speed oscillator (HSE) Startup
-  *        Timeout value
-  */
+ * @brief In the following line adjust the External High Speed oscillator (HSE) Startup
+ *        Timeout value
+ */
 #if !defined  (HSE_STARTUP_TIMEOUT)
 #define HSE_STARTUP_TIMEOUT    ((uint32_t)100)   /*!< Time out for HSE start up, in ms */
 #endif /* HSE_STARTUP_TIMEOUT */
 
 /**
-  * @brief Internal High Speed oscillator (HSI) value.
-  *        This value is used by the RCC HAL module to compute the system frequency
-  *        (when HSI is used as system clock source, directly or through the PLL).
-  */
+ * @brief Internal High Speed oscillator (HSI) value.
+ *        This value is used by the RCC HAL module to compute the system frequency
+ *        (when HSI is used as system clock source, directly or through the PLL).
+ */
 #if !defined  (HSI_VALUE)
 #define HSI_VALUE    ((uint32_t)8000000) /*!< Value of the Internal oscillator in Hz*/
 #endif /* HSI_VALUE */
 
 /**
-  * @brief In the following line adjust the Internal High Speed oscillator (HSI) Startup
-  *        Timeout value
-  */
+ * @brief In the following line adjust the Internal High Speed oscillator (HSI) Startup
+ *        Timeout value
+ */
 #if !defined  (HSI_STARTUP_TIMEOUT)
 #define HSI_STARTUP_TIMEOUT   ((uint32_t)5000) /*!< Time out for HSI start up */
 #endif /* HSI_STARTUP_TIMEOUT */
 
 /**
-  * @brief Internal High Speed oscillator for ADC (HSI14) value.
-  */
+ * @brief Internal High Speed oscillator for ADC (HSI14) value.
+ */
 #if !defined  (HSI14_VALUE)
 #define HSI14_VALUE ((uint32_t)14000000) /*!< Value of the Internal High Speed oscillator for ADC in Hz.
                                              The real value may vary depending on the variations
@@ -124,8 +136,8 @@ extern "C" {
 #endif /* HSI14_VALUE */
 
 /**
-  * @brief Internal High Speed oscillator for USB (HSI48) value.
-  */
+ * @brief Internal High Speed oscillator for USB (HSI48) value.
+ */
 #if !defined  (HSI48_VALUE)
 #define HSI48_VALUE ((uint32_t)48000000) /*!< Value of the Internal High Speed oscillator for USB in Hz.
                                              The real value may vary depending on the variations
@@ -133,16 +145,16 @@ extern "C" {
 #endif /* HSI48_VALUE */
 
 /**
-  * @brief Internal Low Speed oscillator (LSI) value.
-  */
+ * @brief Internal Low Speed oscillator (LSI) value.
+ */
 #if !defined  (LSI_VALUE)
 #define LSI_VALUE  ((uint32_t)40000)
 #endif /* LSI_VALUE */                      /*!< Value of the Internal Low Speed oscillator in Hz
 The real value may vary depending on the variations
 in voltage and temperature.  */
 /**
-  * @brief External Low Speed oscillator (LSI) value.
-  */
+ * @brief External Low Speed oscillator (LSI) value.
+ */
 #if !defined  (LSE_VALUE)
 #define LSE_VALUE  ((uint32_t)32768)    /*!< Value of the External Low Speed oscillator in Hz */
 #endif /* LSE_VALUE */
@@ -156,8 +168,8 @@ in voltage and temperature.  */
 
 /* ########################### System Configuration ######################### */
 /**
-  * @brief This is the HAL system configuration section
-  */
+ * @brief This is the HAL system configuration section
+ */
 #define  VDD_VALUE                    ((uint32_t)3300) /*!< Value of VDD in mv */
 #define  TICK_INT_PRIORITY            ((uint32_t)0)    /*!< tick interrupt priority (lowest by default)  */
 /*  Warning: Must be set to higher priority for HAL_Delay()  */
@@ -167,9 +179,9 @@ in voltage and temperature.  */
 #define  DATA_CACHE_ENABLE            0
 /* ########################## Assert Selection ############################## */
 /**
-  * @brief Uncomment the line below to expanse the "HAL_ASSERT" macro in the
-  *        HAL drivers code
-  */
+ * @brief Uncomment the line below to expanse the "HAL_ASSERT" macro in the
+ *        HAL drivers code
+ */
 /* #define USE_FULL_ASSERT   1U */
 
 /* ################## SPI peripheral configuration ########################## */
@@ -183,8 +195,8 @@ in voltage and temperature.  */
 
 /* Includes ------------------------------------------------------------------*/
 /**
-  * @brief Include module's header file
-  */
+ * @brief Include module's header file
+ */
 
 #ifdef HAL_RCC_MODULE_ENABLED
 #include "bf0_hal_rcc.h"
@@ -213,10 +225,6 @@ in voltage and temperature.  */
 #ifdef HAL_SDADC_MODULE_ENABLED
 #include "bf0_hal_sdadc.h"
 #endif /* HAL_SDADC_MODULE_ENABLED */
-
-#ifdef HAL_CAN_MODULE_ENABLED
-#include "bf0_hal_can.h"
-#endif /* HAL_CAN_MODULE_ENABLED */
 
 #ifdef HAL_CEC_MODULE_ENABLED
 #include "bf0_hal_cec.h"

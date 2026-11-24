@@ -17,8 +17,8 @@ extern "C" {
 
 
 /** @addtogroup BF0_HAL_Driver
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup EZIP EZIP
  * @brief EZIP HAL module driver
@@ -32,8 +32,15 @@ extern "C" {
 #define HAL_EZIP_NON_CONT_MODE_SUPPORTED
 #endif /* SF32LB56X */
 
+#ifdef EZIP_EZIP_PARA_LAST
+#define HAL_EZIP_MULTI_BLOCK_DECODING_SUPPORTED
+#endif /* EZIP_EZIP_PARA_LAST */
 
-
+#if defined(SF32LB55X) || defined(SF32LB58X) || defined(SF32LB56X) || defined(SF32LB52X)
+#define EZIP_WIN_SIZE  0x2000
+#else
+#define EZIP_WIN_SIZE  0x800
+#endif
 /**
  * @brief  HAL EZIP State structures definition
  */
@@ -131,8 +138,19 @@ typedef struct
      * set to -1 if all rows are needed
      */
     int16_t height;
-    /** ezip data size in bytes, only valid if data is saved in NAND */
+    /** data size in bytes
+     * for ezip data type, valid if data is saved in NAND
+     * for lz4 and gzip data type, it indicates the data size if multi-block decoding is supported,
+     * the last block size must be greater than 8 bytes, other block size must be multiple of 4 bytes.
+     */
     uint32_t input_data_size;
+#ifdef HAL_EZIP_MULTI_BLOCK_DECODING_SUPPORTED
+    /** whether it's the last block for lz4/gzip decoding
+     * true: last block
+     * false: not last block
+     */
+    bool is_last_block;
+#endif /* HAL_EZIP_MULTI_BLOCK_DECODING_SUPPORTED */
 } EZIP_DecodeConfigTypeDef;
 
 
@@ -379,12 +397,12 @@ HAL_StatusTypeDef HAL_EZIP_DecodeFast_Init(EZIP_HandleTypeDef *hezip);
 HAL_StatusTypeDef HAL_EZIP_DecodeFast_IT(EZIP_HandleTypeDef *hezip);
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 #ifdef __cplusplus

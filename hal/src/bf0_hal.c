@@ -8,13 +8,16 @@
 #include "bf0_hal.h"
 #include "bf0_hal_pinmux.h"
 /** @addtogroup BF0_HAL_Driver
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup HAL_COMMON Hal Common functions
-  * @brief HAL module driver
-  * @{
-  */
+ * @brief HAL module driver
+ * @{
+ */
+
+
+
 
 #if defined(HAL_MODULE_ENABLED)||defined(_SIFLI_DOXYGEN_)
 
@@ -47,27 +50,36 @@
 
 #if defined(__CC_ARM) || defined(__CLANG_ARM)
 #elif defined(__GNUC__)
-    /* workaround large bin size produced by arm-none-eabi-gcc xpack version
-    * see https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/discussions/23
-    */
-    __WEAK int __aeabi_unwind_cpp_pr0(void) { return 0; }
-    __WEAK int __aeabi_unwind_cpp_pr1(void) { return 0; }
-    __WEAK int __aeabi_unwind_cpp_pr2(void) { return 0; }
+/* workaround large bin size produced by arm-none-eabi-gcc xpack version
+* see https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/discussions/23
+*/
+__WEAK int __aeabi_unwind_cpp_pr0(void)
+{
+    return 0;
+}
+__WEAK int __aeabi_unwind_cpp_pr1(void)
+{
+    return 0;
+}
+__WEAK int __aeabi_unwind_cpp_pr2(void)
+{
+    return 0;
+}
 #endif
 
 /** @defgroup HAL_Exported_Variables HAL Exported Variables
-  * @{
-  */
+ * @{
+ */
 __IO uint32_t uwTick;
 /**
-  * @} HAL_Exported_Variables
-  */
+ * @} HAL_Exported_Variables
+ */
 
 /* Exported functions --------------------------------------------------------*/
 
 /** @defgroup HAL_Exported_Functions HAL Exported Functions
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup HAL_Exported_Functions_Group1 Initialization and de-initialization Functions
  *  @brief    Initialization and de-initialization functions
@@ -102,21 +114,21 @@ __IO uint32_t uwTick;
   */
 
 /**
-  * @brief  Configure the Flash prefetch, the Instruction and Data caches,
-  *         the time base source, NVIC and any required global low level hardware
-  *         by calling the HAL_PreInit() weak function to be optionally defined in user file
-  *
-  * @note   HAL_Init() function is called at the beginning of program after reset and before
-  *         the clock configuration.
-  *
-  * @note   In the default implementation the System Timer (Systick) is used as source of time base.
-  *         The Systick configuration is based on MSI clock, as MSI is the clock
-  *         used after a system Reset and the NVIC configuration is set to Priority group 4.
-  *         Once done, time base tick starts incrementing: the tick variable counter is incremented
-  *         each 1ms in the SysTick_Handler() interrupt handler.
-  *
-  * @retval HAL status
-  */
+ * @brief  Configure the Flash prefetch, the Instruction and Data caches,
+ *         the time base source, NVIC and any required global low level hardware
+ *         by calling the HAL_PreInit() weak function to be optionally defined in user file
+ *
+ * @note   HAL_Init() function is called at the beginning of program after reset and before
+ *         the clock configuration.
+ *
+ * @note   In the default implementation the System Timer (Systick) is used as source of time base.
+ *         The Systick configuration is based on MSI clock, as MSI is the clock
+ *         used after a system Reset and the NVIC configuration is set to Priority group 4.
+ *         Once done, time base tick starts incrementing: the tick variable counter is incremented
+ *         each 1ms in the SysTick_Handler() interrupt handler.
+ *
+ * @retval HAL status
+ */
 HAL_StatusTypeDef HAL_Init(void)
 {
     HAL_StatusTypeDef  status = HAL_OK;
@@ -151,7 +163,8 @@ HAL_StatusTypeDef HAL_Init(void)
 //#ifndef SF32LB52X
         // Except Standby mode, all other boot mode need to re-calibrate RC48
         status = HAL_RCC_CalibrateRC48();
-#ifndef TARMAC
+#if  !defined(TARMAC) && !defined(FPGA)
+        //TODO: 57x need to calibrate as 50MHz
         HAL_ASSERT(HAL_OK == status);
 #endif
 //#endif /* SF32LB52X */
@@ -172,8 +185,12 @@ HAL_StatusTypeDef HAL_Init(void)
     HAL_ADC_HwInit(PM_STANDBY_BOOT != SystemPowerOnModeGet());
 #endif /* HAL_ADC_MODULE_ENABLED */
 
+#ifdef HAL_CORTEX_MODULE_ENABLED
     /* Set Interrupt Group Priority */
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+#else
+    //eclic setting is in _premain_init, _premain_init is called by startup_bf0_lcpu_rom
+#endif
 
 #ifndef NONE_HAL_TICK_INIT
     /* Use SysTick as time base source and configure 1ms tick (default clock after Reset is MSI) */
@@ -196,10 +213,10 @@ HAL_StatusTypeDef HAL_Init(void)
 }
 
 /**
-  * @brief De-initialize common part of the HAL and stop the source of time base.
-  * @note This function is optional.
-  * @retval HAL status
-  */
+ * @brief De-initialize common part of the HAL and stop the source of time base.
+ * @note This function is optional.
+ * @retval HAL status
+ */
 HAL_StatusTypeDef HAL_DeInit(void)
 {
 
@@ -228,9 +245,9 @@ HAL_StatusTypeDef HAL_DeInit(void)
 }
 
 /**
-  * @brief  Before HAL_Init is called, board specific initialization.
-  * @retval None
-  */
+ * @brief  Before HAL_Init is called, board specific initialization.
+ * @retval None
+ */
 __weak void HAL_PreInit(void)
 {
     /* NOTE : This function should not be modified, when the callback is needed,
@@ -239,9 +256,9 @@ __weak void HAL_PreInit(void)
 }
 
 /**
-  * @brief  It's called after HAL_PreInit.
-  * @retval None
-  */
+ * @brief  It's called after HAL_PreInit.
+ * @retval None
+ */
 
 __weak void HAL_PostMspInit(void)
 {
@@ -250,9 +267,9 @@ __weak void HAL_PostMspInit(void)
 
 
 /**
-  * @brief  DeInitialize the MSP.
-  * @retval None
-  */
+ * @brief  DeInitialize the MSP.
+ * @retval None
+ */
 __weak void HAL_MspDeInit(void)
 {
     /* NOTE : This function should not be modified, when the callback is needed,
@@ -261,21 +278,21 @@ __weak void HAL_MspDeInit(void)
 }
 
 /**
-  * @brief This function configures the source of the time base:
-  *        The time source is configured to have 1ms time base with a dedicated
-  *        Tick interrupt priority.
-  * @note This function is called  automatically at the beginning of program after
-  *       reset by HAL_Init() or at any time when clock is reconfigured  by HAL_RCC_ClockConfig().
-  * @note In the default implementation, SysTick timer is the source of time base.
-  *       It is used to generate interrupts at regular time intervals.
-  *       Care must be taken if HAL_Delay() is called from a peripheral ISR process,
-  *       The SysTick interrupt must have higher priority (numerically lower)
-  *       than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
-  *       The function is declared as __weak  to be overwritten  in case of other
-  *       implementation  in user file.
-  * @param TickPriority  Tick interrupt priority.
-  * @retval HAL status
-  */
+ * @brief This function configures the source of the time base:
+ *        The time source is configured to have 1ms time base with a dedicated
+ *        Tick interrupt priority.
+ * @note This function is called  automatically at the beginning of program after
+ *       reset by HAL_Init() or at any time when clock is reconfigured  by HAL_RCC_ClockConfig().
+ * @note In the default implementation, SysTick timer is the source of time base.
+ *       It is used to generate interrupts at regular time intervals.
+ *       Care must be taken if HAL_Delay() is called from a peripheral ISR process,
+ *       The SysTick interrupt must have higher priority (numerically lower)
+ *       than the peripheral interrupt. Otherwise the caller ISR process will be blocked.
+ *       The function is declared as __weak  to be overwritten  in case of other
+ *       implementation  in user file.
+ * @param TickPriority  Tick interrupt priority.
+ * @retval HAL status
+ */
 __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
     HAL_StatusTypeDef  status = HAL_OK;
@@ -288,7 +305,12 @@ __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
     else
     {
         /*Configure the SysTick IRQ priority */
+#ifdef HAL_CORTEX_MODULE_ENABLED
         HAL_NVIC_SetPriority(SysTick_IRQn, TickPriority, 0);
+#else
+        extern void SysTick_Handler(void);
+        ECLIC_Register_IRQ(SysTimer_IRQn, ECLIC_NON_VECTOR_INTERRUPT, ECLIC_LEVEL_TRIGGER, 3, 0, SysTick_Handler);
+#endif
     }
 
     /* Return function status */
@@ -296,8 +318,8 @@ __weak HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 }
 
 /**
-  * @} HAL_Exported_Functions_Group1
-  */
+ * @} HAL_Exported_Functions_Group1
+ */
 
 /** @defgroup HAL_Exported_Functions_Group2 HAL Control functions
  *  @brief    HAL Control functions
@@ -335,11 +357,11 @@ __weak void HAL_IncTick(void)
 }
 
 /**
-  * @brief Provide a tick value in millisecond.
-  * @note This function is declared as __weak to be overwritten in case of other
-  *       implementations in user file.
-  * @retval tick value
-  */
+ * @brief Provide a tick value in millisecond.
+ * @note This function is declared as __weak to be overwritten in case of other
+ *       implementations in user file.
+ * @retval tick value
+ */
 __weak uint32_t HAL_GetTick(void)
 {
     return uwTick;
@@ -355,7 +377,7 @@ __weak uint32_t HAL_GetTick(void)
     BNE     6 cycles
 */
 #define WAIT_US_LOOP_CYCLE 12
-__weak void HAL_Delay_us_(__IO uint32_t us)
+__weak void HAL_Delay_us_(uint32_t us)
 {
     //TODO: replaced by SystemCoreClock?
     static uint32_t sysclk_m;
@@ -396,6 +418,8 @@ __weak void HAL_Delay_us_(__IO uint32_t us)
 // Use systick to get more accurate us level delay.
 __weak void HAL_Delay_us2_(__IO uint32_t us)
 {
+
+#ifdef SysTick
     uint32_t reload = SysTick->LOAD;
     uint32_t told, tnow, tcnt = 0;
     us = us * reload / (1000000 / HAL_TICK_PER_SECOND);
@@ -420,7 +444,7 @@ __weak void HAL_Delay_us2_(__IO uint32_t us)
             }
         }
     }
-
+#endif
 }
 
 #define MAX_US_DELAY    10000
@@ -446,59 +470,56 @@ __weak void HAL_Delay_us(uint32_t us)
             ticks = us;
             us = 0;
         }
-        if ((SysTick->CTRL & SysTick_CTRL_ENABLE_Msk) == 0) // Systick not enabled yet, use loop
-            HAL_Delay_us_(ticks);
-        else
+#ifdef  SysTick
+        if ((SysTick->CTRL & SysTick_CTRL_ENABLE_Msk) != 0) // Systick not enabled yet, use loop
             HAL_Delay_us2_(ticks);
+        else
+#endif
+            HAL_Delay_us_(ticks);
     }
 }
 
-
+__weak void word_memcpy(void *dest, const void *src, size_t n)
+{
+    if (!dest || !src || !n) return;
+    unsigned int *d = (unsigned int *)dest;
+    const unsigned int *s = (const unsigned int *)src;
+    for (size_t i = 0; i < n; i++)
+    {
+        d[i] = s[i];
+    }
+}
 /**
-  * @brief This function provides minimum delay (in milliseconds) based
-  *        on variable incremented.
-  * @note In the default implementation , SysTick timer is the source of time base.
-  *       It is used to generate interrupts at regular time intervals where uwTick
-  *       is incremented.
-  * @note This function is declared as __weak to be overwritten in case of other
-  *       implementations in user file.
-  * @param Delay  specifies the delay time length, in milliseconds.
-  * @retval None
-  */
+ * @brief This function provides minimum delay (in milliseconds) based
+ *        on variable incremented.
+ * @note In the default implementation , SysTick timer is the source of time base.
+ *       It is used to generate interrupts at regular time intervals where uwTick
+ *       is incremented.
+ * @note This function is declared as __weak to be overwritten in case of other
+ *       implementations in user file.
+ * @param Delay  specifies the delay time length, in milliseconds.
+ * @retval None
+ */
 __weak void HAL_Delay(__IO uint32_t Delay)
 {
-#if 1
     while (Delay > 0)
     {
         HAL_Delay_us(1000);
         Delay--;
     }
-#else
-    uint32_t tickstart = HAL_GetTick();
-    uint32_t wait = Delay;
-
-    /* Add a period to guaranty minimum wait */
-    if (wait < HAL_MAX_DELAY)
-    {
-        wait++;
-    }
-
-    while ((HAL_GetTick() - tickstart) < wait)
-    {
-    }
-#endif
 }
 
+#ifdef SysTick
 /**
-  * @brief Suspend Tick increment.
-  * @note In the default implementation , SysTick timer is the source of time base. It is
-  *       used to generate interrupts at regular time intervals. Once HAL_SuspendTick()
-  *       is called, the SysTick interrupt will be disabled and so Tick increment
-  *       is suspended.
-  * @note This function is declared as __weak to be overwritten in case of other
-  *       implementations in user file.
-  * @retval None
-  */
+ * @brief Suspend Tick increment.
+ * @note In the default implementation , SysTick timer is the source of time base. It is
+ *       used to generate interrupts at regular time intervals. Once HAL_SuspendTick()
+ *       is called, the SysTick interrupt will be disabled and so Tick increment
+ *       is suspended.
+ * @note This function is declared as __weak to be overwritten in case of other
+ *       implementations in user file.
+ * @retval None
+ */
 __weak void HAL_SuspendTick(void)
 {
     /* Disable SysTick Interrupt */
@@ -506,20 +527,22 @@ __weak void HAL_SuspendTick(void)
 }
 
 /**
-  * @brief Resume Tick increment.
-  * @note In the default implementation , SysTick timer is the source of time base. It is
-  *       used to generate interrupts at regular time intervals. Once HAL_ResumeTick()
-  *       is called, the SysTick interrupt will be enabled and so Tick increment
-  *       is resumed.
-  * @note This function is declared as __weak to be overwritten in case of other
-  *       implementations in user file.
-  * @retval None
-  */
+ * @brief Resume Tick increment.
+ * @note In the default implementation , SysTick timer is the source of time base. It is
+ *       used to generate interrupts at regular time intervals. Once HAL_ResumeTick()
+ *       is called, the SysTick interrupt will be enabled and so Tick increment
+ *       is resumed.
+ * @note This function is declared as __weak to be overwritten in case of other
+ *       implementations in user file.
+ * @retval None
+ */
 __weak void HAL_ResumeTick(void)
 {
     /* Enable SysTick Interrupt */
     SysTick->CTRL  |= SysTick_CTRL_TICKINT_Msk;
 }
+
+#endif
 
 __weak void HAL_AssertFailed(char *file, uint32_t line)
 {
@@ -562,7 +585,7 @@ void PendSv_DBG_Trigger(void)
 #endif
 }
 
-#if defined(SF32LB52X) && defined(SOC_BF0_LCPU)
+#if !defined(PMUC_IN_LPSYS) && defined(SOC_BF0_LCPU)
 __HAL_ROM_USED uint32_t HAL_GetLXTEnabled(void)
 {
     uint8_t is_lxt_enabled;
@@ -575,7 +598,7 @@ __HAL_ROM_USED uint32_t HAL_GetLXTEnabled(void)
 
     return (uint32_t)is_lxt_enabled;
 }
-#endif
+#endif /* !PMUC_IN_LPSYS && SOC_BF0_LCPU */
 
 
 #endif // SF32LB55X

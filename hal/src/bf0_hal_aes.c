@@ -37,6 +37,8 @@ __HAL_ROM_USED int HAL_AES_init(uint32_t *key, int key_size, uint32_t *iv, uint3
     int ks;
     uint32_t setting;
 
+    HAL_RCC_EnableModule(RCC_MOD_AES);
+
     if (HAL_AES_busy())
         HAL_AES_reset();
 
@@ -99,6 +101,7 @@ static void HAL_AES_run_help(uint8_t enc, uint8_t *in_data, uint8_t *out_data, i
         hwp_aes_acc-> AES_SETTING &= ~(enc << AES_ACC_AES_SETTING_AES_OP_MODE_Pos);
 
     mpu_dcache_clean((void *)in_data, size);
+    mpu_dcache_clean((void *)out_data, size);
     hwp_aes_acc-> COMMAND |= AES_ACC_COMMAND_START;
 }
 
@@ -120,6 +123,7 @@ __HAL_ROM_USED HAL_StatusTypeDef  HAL_AES_run_IT(uint8_t enc, uint8_t *in_data, 
     {
         hwp_aes_acc->IRQ = hwp_aes_acc->IRQ;                // Clear all pending IRQ state
         hwp_aes_acc->SETTING = (AES_ACC_SETTING_DONE_IRQ_MASK | AES_ACC_SETTING_BUS_ERR_IRQ_MASK | AES_ACC_SETTING_SETUP_ERR_IRQ_MASK);
+        NVIC_EnableIRQ(AES_IRQn);
         HAL_AES_run_help(enc, in_data, out_data, size);
     }
     return status;
@@ -178,12 +182,12 @@ static const uint8_t HASH_SIZE[] =
 };
 
 /**
-* @brief  Initialize AES Hash hardware block
-* @param  iv initial vector, must be 32bit aligned, if NULL, use algorithm default initial vector.
-* @param  algo hash algorithm
-* @param  previous finished length
-* @retval 0 if successful, otherwise -1
-*/
+ * @brief  Initialize AES Hash hardware block
+ * @param  iv initial vector, must be 32bit aligned, if NULL, use algorithm default initial vector.
+ * @param  algo hash algorithm
+ * @param  previous finished length
+ * @retval 0 if successful, otherwise -1
+ */
 int HAL_HASH_init(uint32_t *iv, uint8_t algo, uint32_t length)
 {
     uint32_t config = 0;
@@ -247,12 +251,12 @@ static HAL_StatusTypeDef HAL_HASH_run_help(uint8_t *in_data, int size, int final
 
 
 /**
-* @brief  run Hash hardware
-* @param  in_data input data, input data could not in ITCM or Retention memory
-* @param  size length of input data in bytes.
-* @param  final Last block
-* @retval HAL_OK if successful, otherwise HAL_ERROR
-*/
+ * @brief  run Hash hardware
+ * @param  in_data input data, input data could not in ITCM or Retention memory
+ * @param  size length of input data in bytes.
+ * @param  final Last block
+ * @retval HAL_OK if successful, otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_HASH_run(uint8_t *in_data, int size, int final)
 {
 
@@ -276,12 +280,12 @@ HAL_StatusTypeDef HAL_HASH_run(uint8_t *in_data, int size, int final)
 }
 
 /**
-* @brief  run Hash hardware, return immediately, generate AES HASH interrupt when done.
-* @param  in_data input data, input data could not in ITCM or Retention memory
-* @param  size length of input data in bytes.
-* @param  final Last block
-* @retval HAL_OK if successful, otherwise HAL_ERROR
-*/
+ * @brief  run Hash hardware, return immediately, generate AES HASH interrupt when done.
+ * @param  in_data input data, input data could not in ITCM or Retention memory
+ * @param  size length of input data in bytes.
+ * @param  final Last block
+ * @retval HAL_OK if successful, otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_HASH_run_IT(uint8_t *in_data, int size, int final)
 {
     HAL_StatusTypeDef status;
@@ -298,9 +302,9 @@ HAL_StatusTypeDef HAL_HASH_run_IT(uint8_t *in_data, int size, int final)
 }
 
 /**
-* @brief  Reset AES HASH hardware block
-* @retval 0 if successful, otherwise -1
-*/
+ * @brief  Reset AES HASH hardware block
+ * @retval 0 if successful, otherwise -1
+ */
 int HAL_HASH_reset(void)
 {
     hwp_aes_acc->COMMAND = AES_ACC_COMMAND_HASH_RESET;
@@ -309,9 +313,9 @@ int HAL_HASH_reset(void)
 }
 
 /**
-* @brief  Get hash result.
-* @param  out_data output data, Size of out_data depends on hash algorithm
-*/
+ * @brief  Get hash result.
+ * @param  out_data output data, Size of out_data depends on hash algorithm
+ */
 void HAL_HASH_result(uint8_t *out_data)
 {
     int len = HASH_SIZE[hwp_aes_acc->HASH_SETTING & AES_ACC_HASH_SETTING_HASH_MODE_Msk];
@@ -320,8 +324,8 @@ void HAL_HASH_result(uint8_t *out_data)
 }
 
 /**
-* @brief  AES HASH IRQ handler
-*/
+ * @brief  AES HASH IRQ handler
+ */
 void HAL_HASH_IRQHandler(void)
 {
     if (!hwp_aes_acc->IRQ)

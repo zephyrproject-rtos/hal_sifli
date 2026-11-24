@@ -10,10 +10,10 @@
 #if defined(HAL_PTC_ENABLED) ||defined(_SIFLI_DOXYGEN_)
 
 /**
-* @brief  Initialize PTC
-* @param  hptc Handle of PTC
-* @retval HAL_OK if successful, otherwise error
-*/
+ * @brief  Initialize PTC
+ * @param  hptc Handle of PTC
+ * @retval HAL_OK if successful, otherwise error
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_PTC_Init(PTC_HandleTypeDef *hptc)
 {
     uint32_t address;
@@ -31,10 +31,10 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PTC_Init(PTC_HandleTypeDef *hptc)
 }
 
 /**
-* @brief  Enable/disable PTC
-* @param  hptc Handle of PTC
-* @retval HAL_OK if successful, otherwise error
-*/
+ * @brief  Enable/disable PTC
+ * @param  hptc Handle of PTC
+ * @retval HAL_OK if successful, otherwise error
+ */
 __HAL_ROM_USED HAL_StatusTypeDef HAL_PTC_Enable(PTC_HandleTypeDef *hptc, int enable)
 {
     if (enable)
@@ -44,17 +44,42 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PTC_Enable(PTC_HandleTypeDef *hptc, int ena
         hptc->Instance->IER |= ((1UL << hptc->Init.Channel) | ((1UL << hptc->Init.Channel) << PTC_IER_TEIE_Pos));
         cr = hptc->Init.Sel;
         cr |= (((uint32_t)(hptc->Init.Operation)) << PTC_TCR1_OP_Pos);
-#ifdef SF32LB58X
+#ifndef SF32LB55X
         cr |= (((uint32_t)(hptc->Init.Tripol)) << PTC_TCR1_TRIGPOL_Pos);
-#endif // SOC_SF32LB58X
+        cr |= (((uint32_t)(hptc->Init.RepEn)) << PTC_TCR1_REPEN_Pos);
+        cr |= (((uint32_t)(hptc->Init.RepTrig)) << PTC_TCR1_REPTRIG_Pos);
+        cr |= (((uint32_t)(hptc->Init.RepIRQ)) << PTC_TCR1_REPIRQ_Pos);
+#endif /* !SF32LB55X */
+
         hptc->Chn->TCR = cr;
-#ifdef SF32LB58X
+#ifndef SF32LB55X
         if (hptc->Init.Channel < 4 && hptc->Init.Delay != 0)
         {
             hptc->Chn->RCR &= ~PTC_RCR1_DLY;
             hptc->Chn->RCR |= hptc->Init.Delay << PTC_RCR1_DLY_Pos;
         }
-#endif // SOC_SF32LB58X
+
+        if (hptc->Init.RepEn)
+        {
+            MODIFY_REG(hptc->Chn->RCR, PTC_RCR1_REP_Msk, MAKE_REG_VAL2(hptc->Init.Pen, PTC_RCR1_REP));
+        }
+
+#endif /* !SF32LB55X */
+
+        if ((hptc->Init.Trigger_Pin < 32) && (hptc->Init.Sel == PTC_HCPU_PA31_0_A))
+        {
+            hptc->Instance->GPIO31_0 = (hptc->Init.Trigger_Pin - 0) << PTC_GPIO31_0_SELA_Pos;
+        }
+        else if ((hptc->Init.Trigger_Pin < 64) && (hptc->Init.Sel == PTC_HCPU_PA63_32_A))
+        {
+            hptc->Instance->GPIO63_32 = (hptc->Init.Trigger_Pin - 32) << PTC_GPIO63_32_SELA_Pos;
+        }
+#ifdef PTC_GPIO95_64_SELA_Pos
+        else if ((hptc->Init.Trigger_Pin < 96) && (hptc->Init.Sel == PTC_HCPU_PA95_64_A))
+        {
+            hptc->Instance->GPIO95_64 = (hptc->Init.Trigger_Pin - 64) << PTC_GPIO95_64_SELA_Pos;
+        }
+#endif /* PTC_GPIO95_64_SELA_Pos */
         hptc->State = HAL_PTC_STATE_RUNNING;
     }
     else
@@ -66,10 +91,10 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_PTC_Enable(PTC_HandleTypeDef *hptc, int ena
 }
 
 /**
-* @brief  Handle PTC interrupt
-* @param  hptc Handle of PTC
-* @retval None
-*/
+ * @brief  Handle PTC interrupt
+ * @param  hptc Handle of PTC
+ * @retval None
+ */
 __HAL_ROM_USED void HAL_PTC_IRQHandler(PTC_HandleTypeDef *hptc)
 {
     hptc->Instance->ICR |= (1 << hptc->Init.Channel);        // Clear PTC interrupt.

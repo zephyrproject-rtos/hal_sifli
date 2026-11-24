@@ -71,9 +71,13 @@ int32_t ipc_hw_enable_interrupt(ipc_hw_q_handle_t *hw_q_handle, uint8_t qid, uin
     hw_q_handle->ch_id = ch_id;
     hw_q_handle->q_idx = q_idx;
 
+#ifdef RISCV
+    ECLIC_Register_IRQ(ch_cfg->rx.irqn, ECLIC_NON_VECTOR_INTERRUPT, ECLIC_LEVEL_TRIGGER, 3, 0, NULL);
+#else
+
     /* receiver enable NVIC IRQ */
     os_interrupt_start(ch_cfg->rx.irqn, 3, 0);
-
+#endif
     /* sender unmask interrupt */
     __HAL_MAILBOX_UNMASK_CHANNEL_IT(&ch_cfg->tx.handle, q_idx);
 
@@ -112,15 +116,16 @@ int32_t ipc_hw_enable_interrupt2(ipc_hw_q_handle_t *hw_q_handle, uint8_t qid, ui
     /* receiver unmask interrupt */
 #ifdef SOC_BF0_HCPU
     SF_ASSERT(ch_cfg->rx.core == CORE_ID_LCPU);
-#ifdef SF32LB52X
+#ifdef AON_LCPU_INDEPENDENT_SLEEP_SUPPORT
     HAL_HPAON_WakeCore(ch_cfg->rx.core);
-#endif /* SF32LB52X */
+#endif /* AON_LCPU_INDEPENDENT_SLEEP_SUPPORT */
     /* receiver unmask interrupt */
     __HAL_MAILBOX_UNMASK_CHANNEL_IT(&ch_cfg->rx.handle, q_idx);
-#ifdef SF32LB52X
-    //TODO: how about other chip support reference counting? For 55x/56x/58x LCPU is always active when HCPU is active
+#ifdef AON_LCPU_INDEPENDENT_SLEEP_SUPPORT
+    /* release the wake request set by HAL_HPAON_WakeCore() above,
+     * the rx channel is armed and its mailbox IRQ will wake LCPU */
     HAL_HPAON_CANCEL_LP_ACTIVE_REQUEST();
-#endif /* SF32LB52X */
+#endif /* AON_LCPU_INDEPENDENT_SLEEP_SUPPORT */
 #elif defined(SOC_BF0_LCPU)
     SF_ASSERT(ch_cfg->rx.core == CORE_ID_HCPU);
     HAL_LPAON_WakeCore(ch_cfg->rx.core);
@@ -206,14 +211,14 @@ int32_t ipc_hw_disable_interrupt2(ipc_hw_q_handle_t *hw_q_handle)
     /* receiver mask the interrupt */
 #ifdef SOC_BF0_HCPU
     SF_ASSERT(ch_cfg->rx.core == CORE_ID_LCPU);
-#ifdef SF32LB52X
+#ifdef AON_LCPU_INDEPENDENT_SLEEP_SUPPORT
     HAL_HPAON_WakeCore(ch_cfg->rx.core);
-#endif /* SF32LB52X */
+#endif /* AON_LCPU_INDEPENDENT_SLEEP_SUPPORT */
     /* receiver unmask interrupt */
     __HAL_MAILBOX_MASK_CHANNEL_IT(&ch_cfg->rx.handle, q_idx);
-#ifdef SF32LB52X
+#ifdef AON_LCPU_INDEPENDENT_SLEEP_SUPPORT
     HAL_HPAON_CANCEL_LP_ACTIVE_REQUEST();
-#endif /* SF32LB52X */
+#endif /* AON_LCPU_INDEPENDENT_SLEEP_SUPPORT */
 #elif defined(SOC_BF0_LCPU)
     SF_ASSERT(ch_cfg->rx.core == CORE_ID_HCPU);
     HAL_LPAON_WakeCore(ch_cfg->rx.core);
