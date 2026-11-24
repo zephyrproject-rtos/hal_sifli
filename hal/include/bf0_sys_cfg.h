@@ -50,11 +50,17 @@ extern "C" {
 #define FACTORY_CFG_ID_USERK1           27      /*!< User special code  */
 #define FACTORY_CFG_ID_USERK2           28      /*!< User special code  */
 #define FACTORY_CFG_ID_USERK3           29      /*!< User special code  */
+#define FACTORY_CFG_ID_VCOM             30      /*!< User special code  */
+#define FACTORY_CFG_ID_WBF              31      /*!< User special code  */
+#define FACTORY_CFG_ID_VERSION          32      /*!< User special code  */
+#define FACTORY_CFG_ID_FLOWCODE         33      /*!< User special code  */
 #define FACTORY_CFG_ID_UNINIT           0xFF    /*!< Uninitialized ID */
 
 #define CFG_USER_SIZE            (256)
-#ifdef SF32LB52X
+#if defined(SF32LB52X)
 #define CFG_SYS_SIZE            (32)
+#elif defined(SF32LB57X)
+#define CFG_SYS_SIZE            (EFUSE_ATE_DATA_SIZE / 8)
 #else
 #define CFG_SYS_SIZE            (64)
 #endif // SF32LB52X
@@ -68,7 +74,7 @@ typedef struct
     uint16_t vol25;      /*!< Reg value for high voltage. */
     uint16_t low_mv;     /*!< voltage for low with mv . */
     uint16_t high_mv;    /*!< voltage for high with mv. */
-#ifdef SF32LB52X
+#if defined(SF32LB52X) || defined(SF32LB57X)
     uint16_t vbat_reg;      /*!< Reg value for reference vbat */
     uint16_t vbat_mv;     /*!< voltage for vbat with mv. */
     uint8_t ldovref_flag;    /*!< ldo vref flag, if 1,  gpadc ldo vref has been calibrated. */
@@ -92,7 +98,7 @@ typedef struct
 
 typedef struct
 {
-#ifndef SF32LB52X
+#if !defined(SF32LB52X) && !defined(SF32LB57X)
     uint8_t vbuck1;
     uint8_t hp_ldo: 4;
     uint8_t lp_ldo: 4;
@@ -113,6 +119,9 @@ typedef struct
     uint8_t buck_vos_polar2;
     uint8_t hpsys_ldo_vout2;      // buck = 1.35v
     uint8_t lpsys_ldo_vout2;
+#ifdef SF32LB57X
+    uint8_t vbat_ldo_set_vout;
+#endif /* SF32LB57X */
 #endif
 } FACTORY_CFG_VBK_LDO_T;
 
@@ -164,18 +173,61 @@ typedef struct
 
 int BSP_System_Config(void);
 
-char *BSP_Get_UserOTP_Cache();
-char *BSP_Get_CustOTP_Cache();
-#ifdef SF32LB52X
-char *BSP_Get_SysCfg_Cache();
+char *BSP_Get_UserOTP_Cache(void);
+char *BSP_Get_CustOTP_Cache(void);
+#if defined(SF32LB52X) || defined(SF32LB57X)
+char *BSP_Get_SysCfg_Cache(void);
 #endif
 int BSP_CONFIG_get(int type, uint8_t *buf, int length);
 HAL_StatusTypeDef BSP_CONFIG_set(int type, uint8_t *buf, int length);
 
-uint32_t BSP_Get_Sip1_Mode();
-uint32_t BSP_Get_Sip2_Mode();
+uint32_t BSP_Get_Sip1_Mode(void);
+uint32_t BSP_Get_Sip2_Mode(void);
 
 uint32_t BSP_GetOtpBase(void);
+
+#ifndef SF32LB55X
+MPI_TypeDef *BSP_GetFlashByAddr(uint32_t addr);
+#else
+QSPI_TypeDef *BSP_GetFlashByAddr(uint32_t addr);
+#endif /* !SF32LB55X */
+
+
+
+/**
+ * @brief Extract data from specified buffer
+ *
+ * @param[in]  id config id
+ * @param[out] data pointer to data buffer to be written
+ * @param[out] size data buffer size
+ * @param[in]  buf OTP buffer to be read to extract data
+ * @param[in]  buf_size OTP buffer size
+ *
+ * @return read length, 0 to indicate no valid data is extracted
+ */
+uint8_t BSP_OTP_CFG_READ(uint8_t id, uint8_t *data, uint8_t size, uint8_t *buf, uint32_t buf_size);
+
+/**
+ * @brief Extract data from specified buffer and user/customer OTP cache buffer
+ *
+ * @param[in]  id config id
+ * @param[out] data pointer to data buffer to be written
+ * @param[out] size data buffer size
+ * @param[in]  buf OTP buffer to be read to extract data first
+ * @param[in]  buf_size OTP buffer size
+ *
+ * @return read length, 0 to indicate no valid data is extracted
+ */
+uint8_t BSP_OTP_ReadCfg(uint8_t id, uint8_t *data, uint8_t size, uint8_t *buf, uint32_t buf_size);
+
+/**
+ * @brief Configure HXT CBANK
+ *
+ * @param[in]  cbank_sel hxt cbank value
+ *
+ * @return void
+ */
+void BSP_HxtCbank_Config(uint32_t cbank_sel);
 
 #ifdef __cplusplus
 }

@@ -16,6 +16,27 @@ extern "C" {
 #include "sf_type.h"
 
 
+/* ---- memory barrier ---- */
+#if defined(__CC_ARM) || defined(__ARMCC_VERSION)
+/* ARMCC / AC6 */
+#define CB_DMB()   __dmb(0xF)   /* 0xF = full system DMB */
+#define CB_DSB()   __dsb(0xF)
+#elif defined(__GNUC__) || defined(__clang__)
+#if defined(__arm__) || defined(__aarch64__)
+#define CB_DMB()   __asm__ volatile("dmb sy" ::: "memory")
+#define CB_DSB()   __asm__ volatile("dsb sy" ::: "memory")
+#else
+#define CB_DMB()   __asm__ volatile("" ::: "memory")
+#define CB_DSB()   __asm__ volatile("" ::: "memory")
+#endif
+#elif defined(__ICCARM__)
+#define CB_DMB()   __DMB()
+#define CB_DSB()   __DSB()
+#else
+#define CB_DMB()   __asm volatile("" ::: "memory")
+#define CB_DSB()   __asm volatile("" ::: "memory")
+#endif
+
 #define CB_PTR_MIRROR_OFFSET        (0)
 #define CB_PTR_MIRROR_MASK          (0xFFFF)
 #define CB_PTR_IDX_OFFSET           (16)
@@ -26,8 +47,10 @@ extern "C" {
 #define CB_GET_PTR_IDX(ptr_idx_mirror)        (((ptr_idx_mirror) >> CB_PTR_IDX_OFFSET) & CB_PTR_IDX_MASK)
 #define CB_GET_PTR_MIRROR(ptr_idx_mirror)     ((ptr_idx_mirror) & CB_PTR_MIRROR_MASK)
 
-
-
+#if defined(SOC_SF32LB58X) && defined(LCPU_CONFIG_V2) && !defined(BF0_ACPU)
+#define DBG_CIRCULAR_BUFFER
+#endif
+#define DBG_CIRCULAR_MAGIC 0xDBCBE123
 /* circular buffer */
 struct circular_buf
 {
@@ -60,6 +83,10 @@ struct circular_buf
     /* as we use msb of index as mirror bit, the size should be signed and
      * could only be positive. */
     int16_t buffer_size;
+#ifdef  DBG_CIRCULAR_BUFFER
+    uint32_t magic;
+    uint8_t *backup_ptr;
+#endif
 };
 
 enum circular_buf_state
@@ -89,6 +116,16 @@ size_t circular_buf_get_and_update_len(struct circular_buf *cb,
                                        size_t             *remaining_len);
 size_t circular_buf_getchar(struct circular_buf *cb, uint8_t *ch);
 size_t circular_buf_data_len(struct circular_buf *cb);
+
+#ifdef  DBG_CIRCULAR_BUFFER
+void circular_buf_log(struct circular_buf *cb, int idx, const uint8_t *data, int len);
+void circular_buf_set_backup(struct circular_buf *cb);
+void circular_buf_validate(struct circular_buf *cb, int idx, uint8_t *data, int len);
+#else
+#define circular_buf_log(cb,idx,data,len)
+#define circular_buf_set_backup(cb)
+#define circular_buf_validate(cb,idx,data,len)
+#endif
 
 
 inline uint16_t circular_buf_get_size(struct circular_buf *cb)

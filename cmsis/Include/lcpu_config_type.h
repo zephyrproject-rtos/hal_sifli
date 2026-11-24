@@ -10,8 +10,8 @@
 #include "lcpu_config_type_int.h"
 
 /**
-  * @brief  ENUM definition of configration type.
-*/
+ * @brief  ENUM definition of configration type.
+ */
 
 
 typedef enum
@@ -38,6 +38,8 @@ typedef enum
     HAL_LCPU_CONFIG_CHIP_REV = 18,             /*!< Chip revision. */
     HAL_LCPU_CONFIG_BATTERY_CALIBRATION = 19,  /*!< Battery calibration value. */
     HAL_LCPU_CONFIG_BT_ACTMOVE_CONFIG = 20,  /*!< BT custormized activity move config. */
+    HAL_LCPU_CONFIG_BLE_FLUSH_CONFIG = 21, /*!< BLE.data flushed mode config */
+    HAL_LCPU_CONFIG_AFH_CONFIG = 22,/*!< about freq hopping algo config */
     HAL_LCPU_CONFIG_MAX = 0xFE,
 } HAL_LCPU_CONFIG_TYPE_T;
 

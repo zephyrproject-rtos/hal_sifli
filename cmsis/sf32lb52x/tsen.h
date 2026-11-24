@@ -12,11 +12,6 @@ typedef struct
     __IO uint32_t TSEN_CTRL_REG;
     __IO uint32_t TSEN_RDATA;
     __IO uint32_t TSEN_IRQ;
-#ifndef SF32LB52X
-    __IO uint32_t ANAU_RESERVE;
-    __IO uint32_t ANAU_ANA_TP;
-    __IO uint32_t BGR;
-#endif
 } TSEN_TypeDef;
 
 
@@ -70,58 +65,5 @@ typedef struct
 #define TSEN_TSEN_IRQ_TSEN_ISR_Pos      (3U)
 #define TSEN_TSEN_IRQ_TSEN_ISR_Msk      (0x1UL << TSEN_TSEN_IRQ_TSEN_ISR_Pos)
 #define TSEN_TSEN_IRQ_TSEN_ISR          TSEN_TSEN_IRQ_TSEN_ISR_Msk
-
-#ifndef SF32LB52X
-    /*************** Bit definition for TSEN_ANAU_RESERVE register ****************/
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE0_Pos  (0U)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE0_Msk  (0xFFUL << TSEN_ANAU_RESERVE_ANAU_RESERVE0_Pos)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE0  TSEN_ANAU_RESERVE_ANAU_RESERVE0_Msk
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE1_Pos  (8U)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE1_Msk  (0xFFUL << TSEN_ANAU_RESERVE_ANAU_RESERVE1_Pos)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE1  TSEN_ANAU_RESERVE_ANAU_RESERVE1_Msk
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE2_Pos  (16U)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE2_Msk  (0xFFUL << TSEN_ANAU_RESERVE_ANAU_RESERVE2_Pos)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE2  TSEN_ANAU_RESERVE_ANAU_RESERVE2_Msk
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE3_Pos  (24U)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE3_Msk  (0xFFUL << TSEN_ANAU_RESERVE_ANAU_RESERVE3_Pos)
-    #define TSEN_ANAU_RESERVE_ANAU_RESERVE3  TSEN_ANAU_RESERVE_ANAU_RESERVE3_Msk
-
-    /**************** Bit definition for TSEN_ANAU_ANA_TP register ****************/
-    #define TSEN_ANAU_ANA_TP_ANAU_IARY_EN_Pos  (0U)
-    #define TSEN_ANAU_ANA_TP_ANAU_IARY_EN_Msk  (0x1UL << TSEN_ANAU_ANA_TP_ANAU_IARY_EN_Pos)
-    #define TSEN_ANAU_ANA_TP_ANAU_IARY_EN   TSEN_ANAU_ANA_TP_ANAU_IARY_EN_Msk
-    #ifndef SF32LB55X
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_MR_Pos  (1U)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_MR_Msk  (0x7UL << TSEN_ANAU_ANA_TP_ANAU_DC_MR_Pos)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_MR     TSEN_ANAU_ANA_TP_ANAU_DC_MR_Msk
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_TR_Pos  (4U)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_TR_Msk  (0x7UL << TSEN_ANAU_ANA_TP_ANAU_DC_TR_Pos)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_TR     TSEN_ANAU_ANA_TP_ANAU_DC_TR_Msk
-    #else
-        #define TSEN_ANAU_ANA_TP_CHIP_DC_TE_Pos  (1U)
-        #define TSEN_ANAU_ANA_TP_CHIP_DC_TE_Msk  (0x1UL << TSEN_ANAU_ANA_TP_CHIP_DC_TE_Pos)
-        #define TSEN_ANAU_ANA_TP_CHIP_DC_TE     TSEN_ANAU_ANA_TP_CHIP_DC_TE_Msk
-        #define TSEN_ANAU_ANA_TP_CHIP_DC_UR_Pos  (2U)
-        #define TSEN_ANAU_ANA_TP_CHIP_DC_UR_Msk  (0x7UL << TSEN_ANAU_ANA_TP_CHIP_DC_UR_Pos)
-        #define TSEN_ANAU_ANA_TP_CHIP_DC_UR     TSEN_ANAU_ANA_TP_CHIP_DC_UR_Msk
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_MR_Pos  (5U)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_MR_Msk  (0x7UL << TSEN_ANAU_ANA_TP_ANAU_DC_MR_Pos)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_MR     TSEN_ANAU_ANA_TP_ANAU_DC_MR_Msk
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_TR_Pos  (8U)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_TR_Msk  (0x7UL << TSEN_ANAU_ANA_TP_ANAU_DC_TR_Pos)
-        #define TSEN_ANAU_ANA_TP_ANAU_DC_TR     TSEN_ANAU_ANA_TP_ANAU_DC_TR_Msk
-    #endif /* SF32LB55X */
-    /******************** Bit definition for TSEN_BGR register ********************/
-    #define TSEN_BGR_EN_Pos                 (0U)
-    #define TSEN_BGR_EN_Msk                 (0x1UL << TSEN_BGR_EN_Pos)
-    #define TSEN_BGR_EN                     TSEN_BGR_EN_Msk
-    #define TSEN_BGR_VREF06_Pos             (4U)
-    #define TSEN_BGR_VREF06_Msk             (0xFUL << TSEN_BGR_VREF06_Pos)
-    #define TSEN_BGR_VREF06                 TSEN_BGR_VREF06_Msk
-    #define TSEN_BGR_VREF12_Pos             (8U)
-    #define TSEN_BGR_VREF12_Msk             (0xFUL << TSEN_BGR_VREF12_Pos)
-    #define TSEN_BGR_VREF12                 TSEN_BGR_VREF12_Msk
-
-#endif  /* SF32LB52X */
 
 #endif

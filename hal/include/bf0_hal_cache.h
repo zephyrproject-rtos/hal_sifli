@@ -15,9 +15,9 @@ extern "C" {
 #include "bf0_hal_def.h"
 
 /** @addtogroup CACHE
-  * @ingroup BF0_HAL_Driver
-  * @{
-  */
+ * @ingroup BF0_HAL_Driver
+ * @{
+ */
 
 
 /**
@@ -71,6 +71,17 @@ extern "C" {
 #define HAL_CACHE_ICACHE_MPI2           (CACHE_CCR_IRANGE_MPI2)
 /** Enable all ICache profiling */
 #define HAL_CACHE_ICACHE_ALL            (CACHE_CCR_IRANGE_MPI1 | CACHE_CCR_IRANGE_MPI2)
+
+#elif defined(SF32LB57X)
+
+/** Enable MPI1 ICache profiling */
+#define HAL_CACHE_ICACHE_MPI1           (CACHE_CCR_IRANGE_MPI1)
+/** Enable MPI2 ICache profiling */
+#define HAL_CACHE_ICACHE_MPI2           (CACHE_CCR_IRANGE_MPI2)
+/** Enable MPI3 ICache profiling */
+#define HAL_CACHE_ICACHE_MPI3           (CACHE_CCR_IRANGE_MPI3)
+/** Enable all ICache profiling */
+#define HAL_CACHE_ICACHE_ALL            (CACHE_CCR_IRANGE_MPI1 | CACHE_CCR_IRANGE_MPI2 | CACHE_CCR_IRANGE_MPI3)
 
 #else
 
@@ -137,6 +148,17 @@ extern "C" {
 #define HAL_CACHE_DCACHE_MPI2           (CACHE_CCR_DRANGE_MPI2)
 /** Enable all ICache profiling */
 #define HAL_CACHE_DCACHE_ALL            (CACHE_CCR_DRANGE_MPI1 | CACHE_CCR_DRANGE_MPI2)
+
+#elif defined(SF32LB57X)
+
+/** Enable MPI1 ICache profiling */
+#define HAL_CACHE_DCACHE_MPI1           (CACHE_CCR_DRANGE_MPI1)
+/** Enable MPI2 ICache profiling */
+#define HAL_CACHE_DCACHE_MPI2           (CACHE_CCR_DRANGE_MPI2)
+/** Enable MPI3 ICache profiling */
+#define HAL_CACHE_DCACHE_MPI3           (CACHE_CCR_DRANGE_MPI3)
+/** Enable all ICache profiling */
+#define HAL_CACHE_DCACHE_ALL            (CACHE_CCR_DRANGE_MPI1 | CACHE_CCR_DRANGE_MPI2 | CACHE_CCR_DRANGE_MPI3)
 
 #else
 /** Enable QSPI1 and QSPI4 DCache profiling */

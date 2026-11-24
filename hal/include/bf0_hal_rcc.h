@@ -15,16 +15,45 @@ extern "C" {
 #include "bf0_hal_def.h"
 
 /** @addtogroup RCC Reset and control
-  * @ingroup BF0_HAL_Driver
-  * @{
-  */
+ * @ingroup BF0_HAL_Driver
+ * @{
+ */
 
 /* Exported types ------------------------------------------------------------*/
 /** @defgroup RCC_Exported_Types RCC Exported Types
-  * @{
-  *
-  * @brief  RCC System, lock configuration definition
-  */
+ * @{
+ *
+ * @brief  RCC System, lock configuration definition
+ */
+
+#define RCC_MOD_TYPE_HPSYS                  (0U)
+#define RCC_MOD_TYPE_LPSYS                  (1U)
+#define RCC_MOD_TYPE_SECU1                  (2U)
+#define RCC_MOD_TYPE_OFF_POS                (0U)
+#define RCC_MOD_TYPE_OFF_MSK                (0xFFUL << RCC_MOD_TYPE_OFF_POS)
+#define RCC_MOD_TYPE_GROUP_POS              (8U)
+#define RCC_MOD_TYPE_GROUP_MSK              (3UL << RCC_MOD_TYPE_GROUP_POS)
+#define RCC_MOD_TYPE_SUBSYS_POS             (10)
+#define RCC_MOD_TYPE_SUBSYS_MSK             (3UL << RCC_MOD_TYPE_SUBSYS_POS)
+#define RCC_MAKE_MOD_TYPE(subsys, group, off)     (((subsys) << RCC_MOD_TYPE_SUBSYS_POS) | ((group) << RCC_MOD_TYPE_GROUP_POS) | (off))
+#define RCC_GET_OFF_FROM_MOD_TYPE(type)           GET_REG_VAL(type, RCC_MOD_TYPE_OFF_MSK, RCC_MOD_TYPE_OFF_POS)
+#define RCC_GET_GROUP_FROM_MOD_TYPE(type)         GET_REG_VAL(type, RCC_MOD_TYPE_GROUP_MSK, RCC_MOD_TYPE_GROUP_POS)
+#define RCC_GET_SUBSYS_FROM_MOD_TYPE(type)        GET_REG_VAL(type, RCC_MOD_TYPE_SUBSYS_MSK, RCC_MOD_TYPE_SUBSYS_POS)
+
+#ifdef SF32LB55X
+#include "bf0_hal_rcc_sf32lb55x.h"
+#elif defined(SF32LB56X)
+#include "bf0_hal_rcc_sf32lb56x.h"
+#elif defined(SF32LB58X)
+#include "bf0_hal_rcc_sf32lb58x.h"
+#elif defined(SF32LB52X)
+#include "bf0_hal_rcc_sf32lb52x.h"
+#elif defined(SF32LB57X)
+#include "bf0_hal_rcc_sf32lb57x.h"
+#else
+#error "Unsupported chip"
+#endif /* SF32LB55X */
+
 
 // Core ID
 #define CORE_ID_DEFAULT 0
@@ -32,10 +61,10 @@ extern "C" {
 #define CORE_ID_HCPU    1
 /** LCPU */
 #define CORE_ID_LCPU    2
-#ifdef SF32LB58X
+#if defined(SF32LB58X) || defined(SF32LB57X)
 /** ACPU */
 #define CORE_ID_ACPU    3
-#endif /* SF32LB58X */
+#endif /* SF32LB58X || SF32LB57X */
 
 #ifdef SOC_BF0_HCPU
 #define CORE_ID_CURRENT CORE_ID_HCPU
@@ -90,6 +119,12 @@ extern "C" {
 #define RCC_CLK_MPI_SD_DLL2         2
 #define RCC_CLK_MPI_SD_DLL3         3
 
+// LCDC clock
+#define RCC_CLK_LCDC_SYSCLK         0
+#define RCC_CLK_LCDC_DLL2           1
+#define RCC_CLK_LCDC_HRC48          2
+#define RCC_CLK_LCDC_DLL3           3
+
 // For All  core
 #define  RCC_CLK_MOD_SYS        0
 
@@ -102,7 +137,9 @@ extern "C" {
 #else
 #define  RCC_CLK_MOD_FLASH1     HPSYS_RCC_CSR_SEL_MPI1_Pos
 #define  RCC_CLK_MOD_FLASH2     HPSYS_RCC_CSR_SEL_MPI2_Pos
+#ifdef HPSYS_RCC_CSR_SEL_MPI3_Pos
 #define  RCC_CLK_MOD_FLASH3     HPSYS_RCC_CSR_SEL_MPI3_Pos
+#endif /*HPSYS_RCC_CSR_SEL_MPI3_Pos*/
 #ifdef HPSYS_RCC_CSR_SEL_MPI4_Pos
 #define  RCC_CLK_MOD_FLASH4     HPSYS_RCC_CSR_SEL_MPI4_Pos
 #endif
@@ -118,7 +155,9 @@ extern "C" {
 #define  RCC_CLK_MOD_PSRAM      RCC_CLK_MOD_PSRAM1
 
 #define  RCC_CLK_MOD_SDMMC      HPSYS_RCC_CSR_SEL_SDMMC_Pos
-
+#ifdef HPSYS_RCC_CSR_SEL_LCDC_Pos
+#define  RCC_CLK_MOD_LCDC       HPSYS_RCC_CSR_SEL_LCDC_Pos
+#endif /* HPSYS_RCC_CSR_SEL_LCDC_Pos */
 #endif
 
 // For LCPU
@@ -235,8 +274,9 @@ typedef enum
     RCC_MOD_MAC,
     RCC_MOD_PHY,
     RCC_MOD_RFC,
+    RCC_MOD_INVALID = UINT32_MAX,
 } RCC_MODULE_TYPE;
-#else
+#elif !defined(SF32LB52X) && !defined(SF32LB57X)
 typedef enum
 {
     RCC_MOD_DMAC1,
@@ -337,38 +377,25 @@ typedef enum
     RCC_MOD_SECU1,
     RCC_MOD_SECU2,
     RCC_MOD_AUDCODEC,
+    RCC_MOD_JPEGD,
+    RCC_MOD_DCMI,
+    RCC_MOD_INVALID = UINT32_MAX,
 } RCC_MODULE_TYPE;
-#endif
+#endif /* SF32LB55X */
 
 #define RCC_MOD_I2S_ALL     RCC_MOD_I2S1
 
-#if defined(SF32LB52X)
-typedef enum
-{
-    HPSYS_DVFS_MODE_D0,
-    HPSYS_DVFS_MODE_D1,
-    HPSYS_DVFS_MODE_S0,
-    HPSYS_DVFS_MODE_S1,
-    HPSYS_DVFS_MODE_NUM,
-} HPSYS_DvfsModeTypeDef;
 
-typedef enum
-{
-    LPSYS_DVFS_MODE_D,
-    LPSYS_DVFS_MODE_S,
-    LPSYS_DVFS_MODE_NUM,
-} LPSYS_DvfsModeTypeDef;
-#endif /* SF32LB52X */
 
 ///@} RCC_Exported_Types
 
 /***********************************For HCPU****************************************/
 /**
-  * @brief  Reset RCC module for HCPU.
-  * @param  modules modules to be reset, defined in hpsys_rcc.h, HPSYS_RCC_RSTR_XXX
-  * @param  reset 1: reset(bit set), 0:Release reset(bit clear).
-  * @retval None
-  */
+ * @brief  Reset RCC module for HCPU.
+ * @param  modules modules to be reset, defined in hpsys_rcc.h, HPSYS_RCC_RSTR_XXX
+ * @param  reset 1: reset(bit set), 0:Release reset(bit clear).
+ * @retval None
+ */
 
 #define HAL_RCC_HCPU_reset(modules, reset) \
 { \
@@ -387,11 +414,11 @@ typedef enum
 }
 
 /**
-  * @brief  enable/disable RCC module for HCPU.
-  * @param  modules modules to be enabled/disabled. defined in hpsys_rcc.h, HPSYS_RCC_ENR_XXX
-  * @param  enabled 1: enable(bit set), 0:disable(bit clear).
-  * @retval None
-  */
+ * @brief  enable/disable RCC module for HCPU.
+ * @param  modules modules to be enabled/disabled. defined in hpsys_rcc.h, HPSYS_RCC_ENR_XXX
+ * @param  enabled 1: enable(bit set), 0:disable(bit clear).
+ * @retval None
+ */
 
 #define HAL_RCC_HCPU_enable(modules,enabled) {\
     if (enabled) \
@@ -408,9 +435,9 @@ typedef enum
 }
 
 /**
-  * @brief  Release all HPSYS modules
-  * @retval None
-  */
+ * @brief  Release all HPSYS modules
+ * @retval None
+ */
 #define HAL_RCC_HCPU_RELEASE_ALL()  \
     do                              \
     {                               \
@@ -421,11 +448,11 @@ typedef enum
 
 
 /**
-  * @brief  Select clock source for HCPU HW module.
-  * @param  clk_module module for clock, RCC_CLK_MOD_XXX
-  * @param  src clock source.
-  * @retval None
-  */
+ * @brief  Select clock source for HCPU HW module.
+ * @param  clk_module module for clock, RCC_CLK_MOD_XXX
+ * @param  src clock source.
+ * @retval None
+ */
 void HAL_RCC_HCPU_ClockSelect(int clk_module, int src);
 
 /**
@@ -456,57 +483,57 @@ void HAL_RCC_HCPU_GetDiv(int *div, int *pdiv1, int *pdiv2);
 
 
 /**
-  * @brief  Enable DLL1
-  * @param  freq Freqency of DLL1
-  * @retval HAL_OK if successful, Otherwise HAL_ERROR
-  */
+ * @brief  Enable DLL1
+ * @param  freq Freqency of DLL1
+ * @retval HAL_OK if successful, Otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_RCC_HCPU_EnableDLL1(uint32_t freq);
 
 /**
-  * @brief  Disable DLL1
-  * @retval HAL_OK if successful, Otherwise HAL_ERROR
-  */
+ * @brief  Disable DLL1
+ * @retval HAL_OK if successful, Otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_RCC_HCPU_DisableDLL1(void);
 
 /**
-  * @brief  Get DLL1 freqency
-  * @retval Frequency of DLL1, 0 if not enabled
-  */
+ * @brief  Get DLL1 freqency
+ * @retval Frequency of DLL1, 0 if not enabled
+ */
 uint32_t HAL_RCC_HCPU_GetDLL1Freq(void);
 
 /**
-  * @brief  Enable DLL2
-  * @param  freq Freqency of DLL2
-  * @retval HAL_OK if successful, Otherwise HAL_ERROR
-  */
+ * @brief  Enable DLL2
+ * @param  freq Freqency of DLL2
+ * @retval HAL_OK if successful, Otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_RCC_HCPU_EnableDLL2(uint32_t freq);
 
 /**
-  * @brief  Disable DLL2
-  * @retval HAL_OK if successful, Otherwise HAL_ERROR
-  */
+ * @brief  Disable DLL2
+ * @retval HAL_OK if successful, Otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_RCC_HCPU_DisableDLL2(void);
 
 /**
-  * @brief  Get DLL2 freqency
-  * @retval Frequency of DLL2, 0 if not enabled
-  */
+ * @brief  Get DLL2 freqency
+ * @retval Frequency of DLL2, 0 if not enabled
+ */
 uint32_t HAL_RCC_HCPU_GetDLL2Freq(void);
 
 
 uint32_t HAL_RCC_HCPU_GetDLL3Freq(void);
 
 /**
-  * @brief  Enable DLL3
-  * @param  freq Freqency of DLL3
-  * @retval HAL_OK if successful, Otherwise HAL_ERROR
-  */
+ * @brief  Enable DLL3
+ * @param  freq Freqency of DLL3
+ * @retval HAL_OK if successful, Otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_RCC_HCPU_EnableDLL3(uint32_t freq);
 
 /**
-  * @brief  Disable DLL3
-  * @retval HAL_OK if successful, Otherwise HAL_ERROR
-  */
+ * @brief  Disable DLL3
+ * @retval HAL_OK if successful, Otherwise HAL_ERROR
+ */
 HAL_StatusTypeDef HAL_RCC_HCPU_DisableDLL3(void);
 
 
@@ -514,11 +541,11 @@ HAL_StatusTypeDef HAL_RCC_HCPU_DisableDLL3(void);
 /***********************************For LCPU****************************************/
 
 /**
-  * @brief  Reset RCC module for LCPU.
-  * @param  modules modules to be reset, defined in lpsys_rcc.h, LPSYS_RCC_RSTR_XXX
-  * @param  reset 1: reset(bit set), 0:Release reset(bit clear).
-  * @retval None
-  */
+ * @brief  Reset RCC module for LCPU.
+ * @param  modules modules to be reset, defined in lpsys_rcc.h, LPSYS_RCC_RSTR_XXX
+ * @param  reset 1: reset(bit set), 0:Release reset(bit clear).
+ * @retval None
+ */
 
 #define HAL_RCC_LCPU_reset(modules, reset) { \
     if (reset) \
@@ -528,18 +555,18 @@ HAL_StatusTypeDef HAL_RCC_HCPU_DisableDLL3(void);
 }
 
 /**
-  * @brief  Release all LPSYS modules
-  * @retval void
-  */
+ * @brief  Release all LPSYS modules
+ * @retval void
+ */
 #define HAL_RCC_LCPU_RELEASE_ALL()  (hwp_lpsys_rcc->RSTR1 = 0)
 
 
 /**
-  * @brief  enable/disable RCC module for LCPU.
-  * @param  modules modules to be enabled/disabled. defined in lpsys_rcc.h, LPSYS_RCC_ENR_XXX
-  * @param  enabled 1: enable(bit set), 0:disable(bit clear).
-  * @retval None
-  */
+ * @brief  enable/disable RCC module for LCPU.
+ * @param  modules modules to be enabled/disabled. defined in lpsys_rcc.h, LPSYS_RCC_ENR_XXX
+ * @param  enabled 1: enable(bit set), 0:disable(bit clear).
+ * @retval None
+ */
 #define HAL_RCC_LCPU_enable(modules,enabled) {\
     if (enabled) \
         hwp_lpsys_rcc->ENR1|=(modules);\
@@ -556,11 +583,11 @@ HAL_StatusTypeDef HAL_RCC_HCPU_DisableDLL3(void);
 
 
 /**
-  * @brief  Select clock source for LCPU HW module.
-  * @param  clk_module module for clock, RCC_CLK_MOD_XXX
-  * @param  src clock 0:RCC_SYSCLK_HRC48, 1:RCC_SYSCLK_HXT48
-  * @retval None
-  */
+ * @brief  Select clock source for LCPU HW module.
+ * @param  clk_module module for clock, RCC_CLK_MOD_XXX
+ * @param  src clock 0:RCC_SYSCLK_HRC48, 1:RCC_SYSCLK_HXT48
+ * @retval None
+ */
 __STATIC_INLINE void HAL_RCC_LCPU_ClockSelect(int clk_module, int src)
 {
     uint32_t csr = hwp_lpsys_rcc->CSR;
@@ -600,12 +627,12 @@ __STATIC_INLINE void HAL_RCC_LCPU_ClockSelect(int clk_module, int src)
 int HAL_RCC_LCPU_GetClockSrc(int clk_module);
 
 /**
-  * @brief  Set divider for clock of LCPU.
-  * @param  div main divider HCLK=LPCLK/div
-  * @param  pdiv1 divider for pclk1= HCLK/ (2^PDIV1) default 1
-  * @param  pdiv2 divider for pclk2= HCLK/ (2^PDIV2) default 3
-  * @retval None
-  */
+ * @brief  Set divider for clock of LCPU.
+ * @param  div main divider HCLK=LPCLK/div
+ * @param  pdiv1 divider for pclk1= HCLK/ (2^PDIV1) default 1
+ * @param  pdiv2 divider for pclk2= HCLK/ (2^PDIV2) default 3
+ * @retval None
+ */
 void HAL_RCC_LCPU_SetDiv(int div, int pdiv1, int pdiv2);
 
 /**
@@ -619,18 +646,18 @@ void HAL_RCC_LCPU_GetDiv(int *div, int *pdiv1, int *pdiv2);
 
 /***********************************For BCPU****************************************/
 /**
-  * @brief  Reset RCC module for BCPU.
-  * @param  modules modules to be reset, defined in ble_rcc.h, BLE_RCC_RSTR_XXX
-  * @retval None
-  */
+ * @brief  Reset RCC module for BCPU.
+ * @param  modules modules to be reset, defined in ble_rcc.h, BLE_RCC_RSTR_XXX
+ * @retval None
+ */
 #define HAL_RCC_BCPU_reset(modules) hwp_ble_rcc->RSTR|=(modules)
 
 /**
-  * @brief  enable/disable RCC module for BCPU.
-  * @param  modules modules to be enabled/disabled. defined in ble_rcc.h, BLE_RCC_ENR_XXX
-  * @param  enabled 1: enable(bit set), 0:disable(bit clear).
-  * @retval None
-  */
+ * @brief  enable/disable RCC module for BCPU.
+ * @param  modules modules to be enabled/disabled. defined in ble_rcc.h, BLE_RCC_ENR_XXX
+ * @param  enabled 1: enable(bit set), 0:disable(bit clear).
+ * @retval None
+ */
 #define HAL_RCC_BCPU_enable(modules,enabled) {\
     if (enabled) \
         hwp_ble_rcc->ENR|=(modules);\
@@ -639,22 +666,22 @@ void HAL_RCC_LCPU_GetDiv(int *div, int *pdiv1, int *pdiv2);
 }
 
 /**
-  * @brief  Select clock source for BCPU HW module.
-  * @param  clk_module module for clock
-  * @param  src clock 0:RCC_SYSCLK_HRC48, 1:RCC_SYSCLK_HXT48
-  * @retval None
-  */
+ * @brief  Select clock source for BCPU HW module.
+ * @param  clk_module module for clock
+ * @param  src clock 0:RCC_SYSCLK_HRC48, 1:RCC_SYSCLK_HXT48
+ * @retval None
+ */
 #define HAL_RCC_BCPU_ClockSelect(clk_module,src) hwp_ble_rcc->CSR=src
 
 /**
-  * @brief  Set divider for clock of BCPU.
-  * @param  div main divider HCLK=BLECLK(48M)/div
-  * @param  pdiv divider for pclk,
-            HCLK not divided; 100 - HCLK divided by 2; 101 - divided by 4; 110 - divided by 8; 111 - divided by 16
-  * @param  macdiv divider for MACCLK = HCLK / MACDIV
-  * @param  macfreq frequency of BLE MAC master clock
-  * @retval None
-  */
+ * @brief  Set divider for clock of BCPU.
+ * @param  div main divider HCLK=BLECLK(48M)/div
+ * @param  pdiv divider for pclk,
+           HCLK not divided; 100 - HCLK divided by 2; 101 - divided by 4; 110 - divided by 8; 111 - divided by 16
+ * @param  macdiv divider for MACCLK = HCLK / MACDIV
+ * @param  macfreq frequency of BLE MAC master clock
+ * @retval None
+ */
 void HAL_RCC_BCPU_SetDiv(int div, int pdiv, int macdiv, int macfreq);
 
 /********************************For all cores***********************************************/
@@ -742,6 +769,16 @@ void HAL_RCC_EnableModule(RCC_MODULE_TYPE module);
 void HAL_RCC_DisableModule(RCC_MODULE_TYPE module);
 
 /**
+ * @brief  Check if module is enabled
+ *
+ * @param  module module name
+ * @return whether module is enabled
+ * @retval true module is enabled
+ * @retval false module is not enabled
+ */
+bool HAL_RCC_IsModuleEnabled(RCC_MODULE_TYPE module);
+
+/**
  * @brief  Calibrate RC48
  *
  * Must be called after XTAL48 is ready
@@ -787,6 +824,21 @@ void HAL_RCC_ReleaseACPU(void);
  * @retval void
  */
 void HAL_RCC_ResetACPU(void);
+
+#elif defined(SF32LB57X) && defined(SOC_BF0_HCPU)
+
+/**
+ * @brief  Release ACPU
+ * @retval void
+ */
+void HAL_RCC_ReleaseACPU(uint32_t vtor);
+
+/**
+ * @brief  Reset ACPU, ACPU would be reset and halted
+ * @retval void
+ */
+void HAL_RCC_ResetACPU(void);
+
 #endif /* SF32LB58X && SOC_BF0_HCPU */
 
 #ifndef SF32LB55X
@@ -819,6 +871,16 @@ void HAL_RCC_HCPU_DeepWFIClockSelect(bool sys_clk, uint32_t sys_clk_src);
 
 #endif /* SF32LB55X */
 
+#ifdef HPSYS_RCC_CFGR_TICKDIV_Msk
+
+/**
+ * @brief  Set tick clock source divider for HCPU.
+ * @param  div divider (1..63)
+ */
+void HAL_RCC_HCPU_SetTickDiv(uint8_t div);
+
+#endif /* HPSYS_RCC_CFGR_TICKDIV_Msk */
+
 #if defined(SF32LB56X)
 void HAL_RCC_Reset_DMAC2_and_MPI5();
 #endif
@@ -827,7 +889,7 @@ void HAL_RCC_Reset_DMAC2_and_MPI5();
 void HAL_RCC_Reset_DMAC3_and_MPI5();
 #endif
 
-#if defined(SF32LB52X) && defined(SOC_BF0_HCPU)
+#if (defined(SF32LB52X) || defined(SF32LB57X)) && defined(SOC_BF0_HCPU)
 /**
  * @brief  Config HPSYS HCLK
  *
@@ -859,7 +921,7 @@ HAL_StatusTypeDef HAL_RCC_HCPU_ConfigHCLKByMode(uint32_t freq_in_mhz, HPSYS_Dvfs
  */
 HPSYS_DvfsModeTypeDef HAL_RCC_HCPU_GetCurrentDvfsMode(void);
 
-#endif /* SF32LB52X && SOC_BF0_HCPU*/
+#endif /* (SF32LB52X || SF32LB57X)  && SOC_BF0_HCPU*/
 
 
 #if defined(SF32LB52X) && defined(SOC_BF0_LCPU)

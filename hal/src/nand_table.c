@@ -5,19 +5,8 @@
  */
 
 #include <string.h>
+#include <stdint.h>
 #include "flash_table.h"
-
-
-typedef enum
-{
-    NAND_TYPE0 = 0,  // normal type, base on winbond w25n01gw, with NON-BUF, NO QE, EB with 4 dummy
-    NAND_TYPE1,      // based on XT26G01D, BUF, QE, EB, EB with 2 dummy
-    NAND_TYPE2,      // based on ds35x1gaxxx, BUF , QE, NO EB
-    NAND_TYPE3,      // based on tc58cyg0s3hraij, BUF, NO QE, NO EB
-    NAND_TYPE4,      // based on FM25LS01, BUF, NO QE, EB   with 4 dummy
-    NAND_TYPE5,      // based on GD5F1GM7RE, BUF, QE, EB, EB with 4 dummy
-    NAND_CMD_TABLE_CNT
-} NAND_CMD_TABLE_ID_T;
 
 
 __weak FT_CONST SPI_FLASH_FACT_CFG_T nand_cmd_table_list[] =
@@ -420,10 +409,10 @@ __weak FT_CONST SPI_FLASH_FACT_CFG_T nand_cmd_table_list[] =
             {0x0F, 0, 1, 0, 0, 0, 0, 1, 1}, /* SPI_FLASH_CMD_RDSR*/
             {0x1F, 1, 1, 0, 0, 0, 0, 1, 1}, /* SPI_FLASH_CMD_WRSR*/
             {0x13, 0, 0, 0, 0, 0, 2, 1, 1}, /* SPI_FLASH_CMD_PREAD*/
-            {0x03, 0, 1, 0, 0, 0, 2, 1, 1}, /* SPI_FLASH_CMD_READ*/
-            {0x0b, 0, 1, 8, 0, 0, 2, 1, 1}, /* SPI_FLASH_CMD_FREAD*/
-            {0x3b, 0, 2, 8, 0, 0, 2, 1, 1}, /* SPI_FLASH_CMD_DREAD*/
-            {0x6b, 0, 3, 8, 0, 0, 2, 1, 1}, /* SPI_FLASH_CMD_QREAD*/
+            {0x03, 0, 1, 0, 0, 0, 1, 1, 1}, /* SPI_FLASH_CMD_READ*/
+            {0x0b, 0, 1, 8, 0, 0, 1, 1, 1}, /* SPI_FLASH_CMD_FREAD*/
+            {0x3b, 0, 2, 8, 0, 0, 1, 1, 1}, /* SPI_FLASH_CMD_DREAD*/
+            {0x6b, 0, 3, 8, 0, 0, 1, 1, 1}, /* SPI_FLASH_CMD_QREAD*/
             {0xbb, 0, 2, 4, 0, 0, 1, 2, 1}, /* SPI_FLASH_CMD_2READ*/
             {0xeb, 0, 3, 4, 0, 0, 1, 3, 1}, /* SPI_FLASH_CMD_4READ*/
             {0x9f, 0, 1, 0, 0, 0, 0, 0, 1}, /* SPI_FLASH_CMD_RDID*/
@@ -490,13 +479,16 @@ FT_CONST FLASH_RDID_TYPE_T nand_cmd_id_pool_type1[] =
     {0x81, 0xc9, 0x81, 0x10, 0x8000000}, //HYF1GQ4IDACAE_RDID
     {0x01, 0x81, 0xc9, 0x10, 0x8000000}, //HYF1GQ4IDACAE_RDID
     {0x01, 0xc9, 0x81, 0x10, 0x8000000}, //HYF1GQ4IDACAE_RDID
+    {0xc9, 0x21, 0xc9, 0x10, 0x8000000},    //HYF1GQ4UDA_RDID
     {0x5e, 0x44, 0x5e, 0, 0x20000000},   //ZB35Q04A_RDID, used as 2KB page
     {0x0b, 0x31, 0x00, 0x40, 0x8000000}, //XT26G01DXXX_RDID
     {0x8c, 0x01, 0x8c, 0x10, 0x8000000}, //XCSP1AAPK-IT_RDID
     {0x8c, 0xb1, 0x8c, 0x18, 0x20000000}, //XCSP4AAPK-IT_RDID
     {0x0b, 0x33, 0X00, 0x44, 0x20000000},//XT26G04DXXX_RDID
+    {0x0b, 0x53, 0X00, 0x44, 0x20000000},//XT26Q04DXXX_RDID
     {0xc8, 0xd9, 0xc8, 0x10, 0x8000000}, //GD5F1GQ4UxxH_RDID
     {0xc8, 0xc9, 0xc8, 0x10, 0x8000000}, //GD5F1GQ4RxxH_RDID
+    {0xc8, 0xa1, 0x48, 0x10, 0x8000000}, //GD5F1GQ4RxxH_RDID
     {FLASH_INVALID_ID, 0, 0, 0, 0},      //last one
 };
 
@@ -531,6 +523,10 @@ FT_CONST FLASH_RDID_TYPE_T nand_cmd_id_pool_type2[] =
     {0xB0, 0x25, 0xB0, 0x20, 0x10000000},   //UM19A1LISW_RDID
     {0xB0, 0x0C, 0xB0, 0x20, 0x4000000},   //UM19A9HISW_RDID
     {0xB0, 0x0D, 0xB0, 0x20, 0x4000000},   //UM19A9LISW_RDID
+    {0xB0, 0x34, 0xB0, 0x2C, 0x20000000},  //UM19B2HISW_RDID
+    {0xB0, 0x35, 0xB0, 0x2C, 0x20000000},  //UM19B2LISW_RDID
+    {0xB0, 0x1C, 0xB0, 0x20, 0x8000000},   //UM19C0HISW_RDID
+    {0xB0, 0x1D, 0xB0, 0x20, 0x8000000},   //UM19C0LISW_RDID
     {FLASH_INVALID_ID, 0, 0, 0, 0},         //last one
 };
 
@@ -539,14 +535,13 @@ FT_CONST FLASH_RDID_TYPE_T nand_cmd_id_pool_type3[] =
     {0x98, 0xd2, 0X40, 0x10, 0x8000000},    //TC58CYG0S3HRAIJ_RDID
     {0x3C, 0xD1, 0x3C, 0, 0x8000000},       //HSESDDDSW1G_RDID
     {0x01, 0x15, 0X01, 0x60, 0x8000000},    //HYF1GQ4UTXCAE_RDID
-    {0x01, 0x35, 0X01, 0x60, 0x20000000},   //HYF4GQ4UTACAE_RDID
+    {0x01, 0x35, 0X01, 0x70, 0x20000000},   //HYF4GQ4UTACAE_RDID
     {FLASH_INVALID_ID, 0, 0, 0, 0},         //last one
 };
 
 FT_CONST FLASH_RDID_TYPE_T nand_cmd_id_pool_type4[] =
 {
     {0xa1, 0xa5, 0X7f, 0, 0x8000000},       //FM25LS01_RDID
-    {0xc9, 0x21, 0xc9, 0x10, 0x8000000},    //HYF1GQ4UDA_RDID
     {0x5e, 0xa1, 0xa1, 0, 0x8000000},       //ZB35Q01B_RDID
     {0x5e, 0xa2, 0xa1, 0, 0x10000000},      //ZB35Q02BYIG_RDID
     {FLASH_INVALID_ID, 0, 0, 0, 0},         //last one
@@ -561,6 +556,7 @@ FT_CONST FLASH_RDID_TYPE_T nand_cmd_id_pool_type5[] =
     {0xc8, 0x95, 0xc8, 0x10, 0x20000000},   //GD5F4GM8UE_RDID
     {0xc8, 0x85, 0xc8, 0x10, 0x20000000},   //GD5F4GM8RE_RDID
     {0x52, 0xCA, 0x13, 0x10, 0x8000000},    //GSS01GSAX1_RDID
+    {0x85, 0x2A, 0x85, 0x20, 0x8000000},   //P25N01GHA_RDID
     {FLASH_INVALID_ID, 0, 0, 0, 0},         //last one
 };
 
@@ -587,6 +583,11 @@ __WEAK void *get_user_flash_cfg(uint8_t isnand, uint8_t fid, uint8_t did, uint8_
     return NULL;
 }
 #endif
+
+__WEAK const FLASH_RDID_TYPE_T *spi_nand_get_user_flash_cfg(uint8_t fid, uint8_t did, uint8_t mtype, NAND_CMD_TABLE_ID_T *cmd_tbl_type)
+{
+    return NULL;
+}
 
 
 #if defined(JLINK) || defined(KEIL)
@@ -616,6 +617,14 @@ FT_CONST FLASH_RDID_TYPE_T *spi_nand_get_rdid(uint8_t fid, uint8_t did, uint8_t 
     if ((fid == FLASH_INVALID_ID) || (fid == FLASH_UNKNOW_ID))
         return NULL;
 
+#if defined(CFG_FACTORY_DEBUG)
+    res = (FLASH_RDID_TYPE_T *)get_user_flash_cfg(1, fid, did, type, flash_type);
+    if (res != NULL)
+    {
+        return res;
+    }
+#endif
+
     for (i = 0; i < NAND_CMD_TABLE_CNT; i++)
     {
         res = nand_cmd_id_pool[i];
@@ -633,11 +642,7 @@ FT_CONST FLASH_RDID_TYPE_T *spi_nand_get_rdid(uint8_t fid, uint8_t did, uint8_t 
 
     if (i == NAND_CMD_TABLE_CNT)
     {
-#if defined(CFG_FACTORY_DEBUG)
-        res = (FLASH_RDID_TYPE_T *)get_user_flash_cfg(1, fid, did, type, flash_type);
-#else
-        res = NULL;
-#endif
+        res = (FT_CONST FLASH_RDID_TYPE_T *)spi_nand_get_user_flash_cfg(fid, did, type, flash_type);
     }
     else if (flash_type)
     {
@@ -659,7 +664,12 @@ const SPI_FLASH_FACT_CFG_T *spi_nand_get_cmd_by_id(uint8_t fid, uint8_t did, uin
     return res;
 }
 
-__weak int HAL_GET_FLASH_DEFAUT_INX(void)
+__weak const nand_ext_cfg_t *spi_nand_get_ext_cfg_by_id(uint8_t fid, uint8_t did, uint8_t type)
+{
+    return NULL;
+}
+
+__weak int HAL_GET_NAND_FLASH_DEFAUT_IDX(void)
 {
     return -1;
 }
@@ -670,7 +680,7 @@ const SPI_FLASH_FACT_CFG_T *spi_nand_get_default_ctable(void)
     int deft;
     const SPI_FLASH_FACT_CFG_T *res = NULL;
 
-    deft = HAL_GET_FLASH_DEFAUT_INX();
+    deft = HAL_GET_NAND_FLASH_DEFAUT_IDX();
     if (deft >= 0)
     {
         res = (const SPI_FLASH_FACT_CFG_T *)&nand_cmd_table_list[deft];

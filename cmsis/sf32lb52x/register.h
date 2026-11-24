@@ -291,6 +291,7 @@ typedef enum IRQn
 #endif
 
 #include <stdint.h>
+#include "cmsis_utils.h"
 #include "mem_map.h"
 
 //================== CORE ===================
@@ -607,6 +608,9 @@ typedef enum IRQn
 #define DMA2_CSELR          ((DMA_Request_TypeDef *) &DMA2->CSELR1)
 #define DMA2_CHANNEL_NUM    (8)
 
+
+#define HASH_ACC_BASE       (&hwp_aes_acc->HASH_SETTING)
+
 /**
  *
  * @} Peripheral_memory_map
@@ -642,36 +646,14 @@ typedef enum
 } ErrorStatus;
 
 
-#define MAKE_REG_VAL(val, mask, offset)  ((((uint32_t)(val)) << (offset)) & (mask))
-
-#define MAKE_REG_VAL2(val, bits_name)    ((((uint32_t)(val)) << (bits_name##_Pos)) & (bits_name##_Msk))
-
-#define GET_REG_VAL(reg, mask, offset)   ((((uint32_t)(reg)) & (mask)) >> (offset))
-
-#define GET_REG_VAL2(reg, bits_name)     ((((uint32_t)(reg)) & (bits_name##_Msk)) >> (bits_name##_Pos))
-
-#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
-
-#define CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
-
-#define READ_BIT(REG, BIT)    ((REG) & (BIT))
-
-#define CLEAR_REG(REG)        ((REG) = (0x0))
-
-#define WRITE_REG(REG, VAL)   ((REG) = (VAL))
-
-#define READ_REG(REG)         ((REG))
-
-#define MODIFY_REG(REG, CLEARMASK, SETMASK)  WRITE_REG((REG), (((READ_REG(REG)) & (~(CLEARMASK))) | (SETMASK)))
-
 #define IS_LPUART_INSTANCE(INSTANCE)    (0)
 
 #define HCPU_IS_SRAM_ADDR(addr)  (((uint32_t)(addr) >= HPSYS_RAM0_BASE) && ((uint32_t)(addr) < HPSYS_RAM_END))
 /**
-  * @brief  Convert HCPU SRAM address which can be used by LCPU
-  * @param  addr HCPU SRAM address
-  * @retval address which can be accessed by LCPU
-*/
+ * @brief  Convert HCPU SRAM address which can be used by LCPU
+ * @param  addr HCPU SRAM address
+ * @retval address which can be accessed by LCPU
+ */
 #define HCPU_ADDR_2_LCPU_ADDR(addr)     (HCPU_IS_SRAM_ADDR(addr) ? (uint32_t)((addr) + HCPU2LCPU_OFFSET) : (uint32_t)(addr))
 
 
@@ -685,32 +667,30 @@ typedef enum
 #define HCPU_MPI_CBUS_ADDR(addr)       (HCPU_IS_MPI_CBUS_ADDR(addr) ? ((uint32_t)(addr)) : HCPU_MPI_SBUS_ADDR_2_CBUS_ADDR(addr))
 
 /**
-  * @brief  Convert LCPU SRAM address which can be used by HCPU
-  * @param  addr LCPU SRAM address
-  * @retval address which can be accessed by HCPU
-*/
+ * @brief  Convert LCPU SRAM address which can be used by HCPU
+ * @param  addr LCPU SRAM address
+ * @retval address which can be accessed by HCPU
+ */
 #define LCPU_ADDR_2_HCPU_ADDR(addr) ((addr) + LCPURAM2HCPU_OFFSET)
 
 /**
-  * @brief  Convert LCPU ROM address which can be used by HCPU
-  * @param  addr LCPU ROM address
-  * @retval address which can be accessed by HCPU
-*/
+ * @brief  Convert LCPU ROM address which can be used by HCPU
+ * @param  addr LCPU ROM address
+ * @retval address which can be accessed by HCPU
+ */
 #define LCPU_ROM_ADDR_2_HCPU_ADDR(addr) ((addr) + LCPUROM2HCPU_OFFSET)
 /**
-  * @brief  Convert LCPU ITCM address which can be used by HCPU
-  * @param  addr LCPU ITCM address
-  * @retval address which can be accessed by HCPU
-*/
+ * @brief  Convert LCPU ITCM address which can be used by HCPU
+ * @param  addr LCPU ITCM address
+ * @retval address which can be accessed by HCPU
+ */
 #define LCPU_ITCM_ADDR_2_HCPU_ADDR(addr) ((addr) + LCPUITCM2HCPU_OFFSET)
 /**
-  * @brief  Convert LCPU DTCM address which can be used by HCPU
-  * @param  addr LCPU ITCM address
-  * @retval address which can be accessed by HCPU
-*/
+ * @brief  Convert LCPU DTCM address which can be used by HCPU
+ * @param  addr LCPU ITCM address
+ * @retval address which can be accessed by HCPU
+ */
 #define LCPU_DTCM_ADDR_2_HCPU_ADDR(addr) ((addr) + LCPUDTCM2HCPU_OFFSET)
-
-#define GPADC_CALIB_FLOW_VERSION        (3)
 
 
 #ifndef LCPU_BOOT_ADDR
@@ -720,6 +700,9 @@ typedef enum
 #define IS_LCPU(id)  ((*id)&1)
 
 #define SF32LB52X_LETTER_SERIES()  ((__HAL_SYSCFG_GET_REVID() == HAL_CHIP_REV_ID_A4) || (__HAL_SYSCFG_GET_REVID() == HAL_CHIP_REV_ID_B4))
+
+/* Peripheral_timer_clk */
+#define FIXED_GPTBTIM_SRC_CLK   (24000000)
 
 #if defined (USE_HAL_DRIVER)
 #include "bf0_hal.h"

@@ -7,19 +7,19 @@
 #include "bf0_hal.h"
 
 /** @addtogroup BF0_HAL_Driver
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup GPIO GPIO
-  * @brief GPIO HAL module driver
-  * @{
-  */
+ * @brief GPIO HAL module driver
+ * @{
+ */
 /** MISRA C:2012 deviation rule has been granted for following rules:
-  * Rule-12.2 - Medium: RHS argument is in interval [0,INF] which is out of
-  * range of the shift operator in following API :
-  * HAL_GPIO_Init
-  * HAL_GPIO_DeInit
-  */
+ * Rule-12.2 - Medium: RHS argument is in interval [0,INF] which is out of
+ * range of the shift operator in following API :
+ * HAL_GPIO_Init
+ * HAL_GPIO_DeInit
+ */
 
 #if defined(HAL_GPIO_MODULE_ENABLED)||defined(_SIFLI_DOXYGEN_)
 
@@ -79,7 +79,7 @@
 
 #define SET_OPEN_DRAIN_FLAG(gpiox,mask) do{ \
         gpiox->DOR  &= ~(mask); \
-        gpiox->ITCR |= (mask);  \
+        gpiox->ITCR = (mask);  \
         gpiox->IPSR |= (mask);  \
         gpiox->IPCR |= (mask);  \
 }while(0)
@@ -92,14 +92,14 @@
 #endif
 
 #ifndef SF32LB55X
-#define DISABLE_ISR(gpiox,mask)  do{(gpiox)->IECR |= (mask); \
-                                        (gpiox)->IECR_EXT |= (mask); \
+#define DISABLE_ISR(gpiox,mask)  do{(gpiox)->IECR = (mask); \
+                                        (gpiox)->IECR_EXT = (mask); \
                                         WAIT_ISR_DISABLED(); /*Wait IER/IER_EXT deactive*/ \
                                         (gpiox)->ISR = (mask); \
                                         (gpiox)->ISR_EXT = (mask); \
                                         }while(0)
 #else
-#define DISABLE_ISR(gpiox,mask)  do{(gpiox)->IECR |= (mask); \
+#define DISABLE_ISR(gpiox,mask)  do{(gpiox)->IECR = (mask); \
                                         WAIT_ISR_DISABLED();  /*Wait IER deactive*/\
                                          (gpiox)->ISR = (mask); \
                                         }while(0)
@@ -127,12 +127,14 @@
     #define GPIO2_EXTI_START_PIN  (0)
     #define GPIO2_EXTI_END_PIN    (36)
 #elif defined(SF32LB52X)
-    // TODO: Revist this
     #define GPIO1_EXTI_START_PIN  (0)
-    #define GPIO1_EXTI_END_PIN    (78)
+    #define GPIO1_EXTI_END_PIN    (44)
 
     #define GPIO2_EXTI_START_PIN  (0)
-    #define GPIO2_EXTI_END_PIN    (36)
+    #define GPIO2_EXTI_END_PIN    (3)
+#elif defined(SF32LB57X)
+    #define GPIO1_EXTI_START_PIN  (0)
+    #define GPIO1_EXTI_END_PIN    (57)
 #else
     #error "Fix me!"
 #endif /* SF32LB55X */
@@ -145,8 +147,8 @@ static GPIO_TypeDef *GPIO_GetInstance(GPIO_TypeDef *hgpio, uint16_t gpio_pin, ui
 /* Exported functions --------------------------------------------------------*/
 
 /** @defgroup GPIO_Exported_Functions GPIO Exported Functions
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup GPIO_Exported_Functions_Group1 Initialization/de-initialization functions
  *  @brief    Initialization and Configuration functions
@@ -210,7 +212,7 @@ __HAL_ROM_USED void HAL_GPIO_Init(GPIO_TypeDef *hgpio, GPIO_InitTypeDef *GPIO_In
 
         if (GPIO_Init->Mode == GPIO_MODE_IT_RISING)
         {
-            gpiox->ITSR |= (1UL << offset);
+            gpiox->ITSR = (1UL << offset);
 #ifndef SF32LB55X
             gpiox->IPHSR = (1UL << offset);
             gpiox->IPLCR = (1UL << offset);
@@ -222,7 +224,7 @@ __HAL_ROM_USED void HAL_GPIO_Init(GPIO_TypeDef *hgpio, GPIO_InitTypeDef *GPIO_In
         }
         else if (GPIO_Init->Mode == GPIO_MODE_IT_FALLING)
         {
-            gpiox->ITSR |= (1UL << offset);
+            gpiox->ITSR = (1UL << offset);
 #ifndef SF32LB55X
             gpiox->IPHCR = (1UL << offset);
             gpiox->IPLSR = (1UL << offset);
@@ -233,7 +235,7 @@ __HAL_ROM_USED void HAL_GPIO_Init(GPIO_TypeDef *hgpio, GPIO_InitTypeDef *GPIO_In
         }
         else if (GPIO_Init->Mode == GPIO_MODE_IT_RISING_FALLING)
         {
-            gpiox->ITSR |= (1UL << offset);
+            gpiox->ITSR = (1UL << offset);
 #ifndef SF32LB55X
             gpiox->IPHSR = (1UL << offset);
             gpiox->IPLSR = (1UL << offset);
@@ -244,7 +246,7 @@ __HAL_ROM_USED void HAL_GPIO_Init(GPIO_TypeDef *hgpio, GPIO_InitTypeDef *GPIO_In
         }
         else if (GPIO_Init->Mode == GPIO_MODE_IT_HIGH_LEVEL)
         {
-            gpiox->ITCR |= (1UL << offset);
+            gpiox->ITCR = (1UL << offset);
 #ifndef SF32LB55X
             gpiox->IPHSR = (1UL << offset);
             gpiox->IPLCR = (1UL << offset);
@@ -255,7 +257,7 @@ __HAL_ROM_USED void HAL_GPIO_Init(GPIO_TypeDef *hgpio, GPIO_InitTypeDef *GPIO_In
         }
         else if (GPIO_Init->Mode == GPIO_MODE_IT_LOW_LEVEL)
         {
-            gpiox->ITCR |= (1UL << offset);
+            gpiox->ITCR = (1UL << offset);
 #ifndef SF32LB55X
             gpiox->IPHCR = (1UL << offset);
             gpiox->IPLSR = (1UL << offset);
@@ -268,14 +270,14 @@ __HAL_ROM_USED void HAL_GPIO_Init(GPIO_TypeDef *hgpio, GPIO_InitTypeDef *GPIO_In
 #ifndef SF32LB55X
         if (IS_CURRENT_SYS_GPIO(hgpio))
         {
-            gpiox->IESR |= (1 << offset);
+            gpiox->IESR = (1 << offset);
         }
         else
         {
-            gpiox->IESR_EXT |= (1 << offset);
+            gpiox->IESR_EXT = (1 << offset);
         }
 #else
-        gpiox->IESR |= (1 << offset);
+        gpiox->IESR = (1 << offset);
 #endif /* SF32LB55X */
 
     }
@@ -301,14 +303,14 @@ __HAL_ROM_USED void HAL_GPIO_DeInit(GPIO_TypeDef *hgpio, uint32_t GPIO_Pin)
         return;
     }
 
-    gpiox->DOECR |= (1UL << offset);
+    gpiox->DOECR = (1UL << offset);
     DISABLE_ISR(gpiox, (1UL << offset));
     CLEAR_OPEN_DRAIN_FLAG(gpiox, (1UL << offset));
 }
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /** @defgroup GPIO_Exported_Functions_Group2 IO operation functions
  *  @brief GPIO Read, Write, Toggle, Lock and EXTI management functions.
@@ -403,11 +405,11 @@ __HAL_ROM_USED void HAL_GPIO_WritePin(GPIO_TypeDef *hgpio, uint16_t GPIO_Pin, GP
     {
         if (PinState == GPIO_PIN_RESET)
         {
-            gpiox->DOESR |= (1UL << offset);
+            gpiox->DOESR = (1UL << offset);
         }
         else
         {
-            gpiox->DOECR |= (1UL << offset);
+            gpiox->DOECR = (1UL << offset);
         }
     }
     else
@@ -539,25 +541,19 @@ __HAL_ROM_USED void HAL_GPIO_EXTI_IRQHandler(GPIO_TypeDef *hgpio, uint16_t GPIO_
          * AON pin detection always works even if it's not in sleep state.
          * So if edge detection is configured, the corresponding bit in WSR would still be set to 1 if system is awake, and no one will clear the bit.
          */
-        if ((GPIO_TypeDef *)hwp_gpio1 == hgpio)
+#if defined(SOC_BF0_HCPU) && defined(HPSYS_AON_WCR_PIN0)
+        wakeup_pin = HAL_HPAON_QueryWakeupPin(hgpio, GPIO_Pin);
+        if (wakeup_pin >= 0)
         {
-            wakeup_pin = HAL_HPAON_QueryWakeupPin(hgpio, GPIO_Pin);
-            if (wakeup_pin >= 0)
-            {
-                HAL_HPAON_CLEAR_WSR(1UL << (HPSYS_AON_WCR_PIN0_Pos + wakeup_pin));
-            }
+            HAL_HPAON_CLEAR_WSR(1UL << (HPSYS_AON_WCR_PIN0_Pos + wakeup_pin));
         }
-
-        if ((GPIO_TypeDef *)hwp_gpio2 == hgpio)
+#elif defined(LPSYS_AON_WCR_PIN0)
+        wakeup_pin = HAL_LPAON_QueryWakeupPin(hgpio, GPIO_Pin);
+        if (wakeup_pin >= 0)
         {
-            wakeup_pin = HAL_LPAON_QueryWakeupPin(hgpio, GPIO_Pin);
-            if (wakeup_pin >= 0)
-            {
-                HAL_LPAON_CLEAR_WSR(1UL << (LPSYS_AON_WCR_PIN0_Pos + wakeup_pin));
-
-                HAL_PMU_CLEAR_WSR(1UL << (PMUC_WCR_PIN0_Pos + wakeup_pin));
-            }
+            HAL_LPAON_CLEAR_WSR(1UL << (LPSYS_AON_WCR_PIN0_Pos + wakeup_pin));
         }
+#endif /* SOC_BF0_HCPU */
     }
 }
 
@@ -575,11 +571,13 @@ __HAL_ROM_USED void HAL_GPIO_IRQHandler(GPIO_TypeDef *hgpio)
         start = GPIO1_EXTI_START_PIN;
         end   = GPIO1_EXTI_END_PIN;
     }
+#if GPIO2_BASE
     else if (hwp_gpio2 == hgpio)
     {
         start = GPIO2_EXTI_START_PIN;
         end   = GPIO2_EXTI_END_PIN;
     }
+#endif /* GPIO2_BASE */
     else
     {
         HAL_ASSERT(0);//Invalid param
@@ -778,7 +776,11 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_GPIO_ClearInterrupt(GPIO_TypeDef *hgpio)
 {
     GPIO_TypeDef *gpiox;
 
-    if ((hgpio != (GPIO_TypeDef *)hwp_gpio1) && (hgpio != (GPIO_TypeDef *)hwp_gpio2))
+    if ((hgpio != (GPIO_TypeDef *)hwp_gpio1)
+#if GPIO2_BASE
+            && (hgpio != (GPIO_TypeDef *)hwp_gpio2)
+#endif /* GPIO2_BASE */
+       )
     {
         return HAL_ERROR;
     }
@@ -833,13 +835,13 @@ __HAL_ROM_USED HAL_StatusTypeDef HAL_GPIO_ClearPinInterrupt(GPIO_TypeDef *hgpio,
 
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 static GPIO_TypeDef *GPIO_GetInstance(GPIO_TypeDef *hgpio, uint16_t gpio_pin, uint16_t *offset)
 {
@@ -875,10 +877,10 @@ static GPIO_TypeDef *GPIO_GetInstance(GPIO_TypeDef *hgpio, uint16_t gpio_pin, ui
 
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 
 /**
-  * @}
-  */
+ * @}
+ */

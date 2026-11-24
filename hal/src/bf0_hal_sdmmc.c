@@ -7,13 +7,13 @@
 #include "bf0_hal.h"
 
 /** @addtogroup BF0_HAL_Driver
-  * @{
-  */
+ * @{
+ */
 
 /** @defgroup SDMMC_HAL SDMMC Low Layer
-  * @brief Low layer module for SD
-  * @{
-  */
+ * @brief Low layer module for SD
+ * @{
+ */
 #if defined(HAL_SD_MODULE_ENABLED)||defined(_SIFLI_DOXYGEN_)
 
 HAL_StatusTypeDef HAL_SDMMC_INIT(SD_TypeDef *hsd)
@@ -26,7 +26,7 @@ HAL_StatusTypeDef HAL_SDMMC_INIT(SD_TypeDef *hsd)
     hsd->CLKCR |= SD_CLKCR_VOID_FIFO_ERROR;
     hsd->SR = 0X3FFFF;
     hsd->IER = 0;
-#if defined(SF32LB52X)
+#if defined(SF32LB52X) || defined(SF32LB57X)
     hsd->CDR &= ~SD_CDR_ITIMING_SEL;
 #endif
     HAL_SDMMC_SET_TIMEOUT(hsd, HAL_SDMMC_DEFAULT_TIMEOUT);
@@ -203,6 +203,32 @@ uint32_t HAL_SDMMC_GET_IRQ_MASK(SD_TypeDef *hsd)
     return hsd->IER;
 }
 
+HAL_StatusTypeDef HAL_SDMMC_ENABLE_CEATA_MODE(SD_TypeDef *hsd, uint8_t single, uint8_t multi)
+{
+    uint32_t value = 0;
+    if (hsd == NULL)
+        return HAL_ERROR;
+    value = SD_CEATA_ENABLE_SDIO_IRQ;
+    if (single)/*host support 4 wires interrupt on single block data transfers*/
+        value |= SD_CEATA_SDIO_4WIRES_IRQ;
+    if (multi)/*host support 4 wires interrupt on multi-block data transfers*/
+        value |= SD_CEATA_SDIO_4WIRES_MULTI_IRQ;
+    hsd->CEATA = value;
+    return HAL_OK;
+}
+
+uint32_t HAL_SDMMC_DISABLE_CEATA_MODE(SD_TypeDef *hsd)
+{
+    if (hsd == NULL)
+        return 0;
+    hsd->CEATA &= ~(SD_CEATA_ENABLE_SDIO_IRQ |
+                    SD_CEATA_SDIO_4WIRES_IRQ |
+                    SD_CEATA_SDIO_4WIRES_MULTI_IRQ);
+
+    return hsd->IER;
+}
+
+
 HAL_StatusTypeDef HAL_SDMMC_SET_CMD(SD_TypeDef *hsd, uint32_t cmd_idx,
                                     uint32_t resp, uint32_t arg)
 {
@@ -215,7 +241,7 @@ HAL_StatusTypeDef HAL_SDMMC_SET_CMD(SD_TypeDef *hsd, uint32_t cmd_idx,
                   SD_SR_STARTBIT_ERROR | SD_SR_FIFO_UNDERRUN | SD_SR_FIFO_OVERRUN |
                   SD_SR_CMD_SENT | SD_SR_CARD_EXIT_INT |
                   SD_SR_CARD_REMOVE | SD_SR_SDIO
-#if !defined(SF32LB52X)&&!defined(SF32LB56X)
+#if defined(SD_SR_CARD_DET)
                   | SD_SR_CARD_DET
 #endif
                   ;
@@ -256,7 +282,8 @@ HAL_StatusTypeDef HAL_SDMMC_CLK_SET(SD_TypeDef *hsd, uint32_t div, uint8_t en)
 
     uint32_t clk = hsd->CLKCR;
     clk &= ~SD_CLKCR_DIV;
-    if (div > 0)
+    /* divider=(reg_div+1), reg_div must be greater than 0 */
+    if (div > 1)
         div -= 1;
     if (div > 0x1FFF)
         div = 0x1FFF;
@@ -397,6 +424,8 @@ HAL_StatusTypeDef HAL_SDMMC_CACHE_TO_EN(SD_TypeDef *hsd, uint8_t en)
     return HAL_OK;
 }
 
+//TODO:
+#ifdef HPSYS_CFG_SYSCR_SDNAND
 HAL_StatusTypeDef HAL_SDMMC_ENABLE_AHB_MAP(SD_TypeDef *hsd, uint8_t sd_map_en)
 {
     if (sd_map_en)  // ahb space map for sd2
@@ -410,6 +439,7 @@ HAL_StatusTypeDef HAL_SDMMC_ENABLE_AHB_MAP(SD_TypeDef *hsd, uint8_t sd_map_en)
 
     return HAL_OK;
 }
+#endif
 
 HAL_StatusTypeDef HAL_SDMMC_SET_CAOFFSET(SD_TypeDef *hsd, uint32_t offset)
 {
@@ -437,13 +467,13 @@ HAL_StatusTypeDef HAL_SDMMC_VOID_FIFO(SD_TypeDef *hsd, uint8_t en)
 
 #endif
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @} file
-  */
+ * @} file
+ */
