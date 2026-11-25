@@ -41,6 +41,11 @@ uint8_t get_pll_freq_type()
 {
     return g_pll_freq_type;
 }
+
+__weak void HAL_DBG_printf(const char *fmt, ...)
+{
+}
+
 // need updata drv_audcodec if modify this function
 __weak int updata_pll_freq(uint8_t type) //type 0: 16k 1024 series  1:44.1k 1024 series 2:16k 1000 series 3: 44.1k 1000 series
 {
